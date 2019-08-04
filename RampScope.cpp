@@ -31,8 +31,8 @@ void setup() {
 	azimuth.setMaxSpeed(30000);
 	azimuth.setAcceleration(500);
 
-	elevation.setMaxSpeed(20000);
-	elevation.setAcceleration(2000);
+	elevation.setMaxSpeed(30000);
+	elevation.setAcceleration(500);
 
 	// Add steppers to mutlistepper
 	//axes.addStepper(azimuth);

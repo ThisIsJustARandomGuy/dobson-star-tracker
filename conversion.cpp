@@ -48,9 +48,9 @@ const byte numChars = 32;
 char receivedChars[numChars];
 
 boolean newData = false;
-boolean beginMove = false;
+boolean isHomed = false;
 
-int desiredRaSecs, desiredDecSecs;
+long desiredRaSecs, desiredDecSecs;
 
 void initConversion() {
 	cos_phi = cos(
@@ -103,6 +103,12 @@ void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	}
 	while (AR_tel_s >= 86400) {
 		AR_tel_s = AR_tel_s - 86400;
+	}
+
+	if (!isHomed) {
+		az.setCurrentPosition(map(AR_tel_s, 0, 86400, 0, 3200));
+		el.setCurrentPosition(map(DEC_tel_s, 0, 324000, 0, 3200));
+		isHomed = true;
 	}
 
 	arHH = AR_tel_s / 3600;
@@ -174,64 +180,51 @@ void showNewData(AccelStepper &az, AccelStepper &el) {
 		}
 		if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// Start moving
+			az.moveTo(map(desiredRaSecs, 0, 86400, 0, 3200));
+				/*map(abs(abs(desiredRaSecs) - abs(AR_tel_s)), 0, 86400, 0,
+				 3200));*/
+			el.moveTo(map(desiredDecSecs, -324000, 324000, 0, 32000));
+						/*map(abs(abs(desiredDecSecs) - abs(DEC_tel_s)), 0, 324000, 0,
+						 3200));*/
+			Serial.print("0");
 			Serial.println("Moving from: ");
 			Serial.println(AR_tel_s);
 			Serial.println(DEC_tel_s);
 			Serial.println("Moving to: ");
 			Serial.println(desiredRaSecs);
 			Serial.println(desiredDecSecs);
-			az.moveTo(desiredRaSecs);
-				/*map(abs(abs(desiredRaSecs) - abs(AR_tel_s)), 0, 86400, 0,
-				 3200));*/
-			el.moveTo(desiredDecSecs);
-						/*map(abs(abs(desiredDecSecs) - abs(DEC_tel_s)), 0, 324000, 0,
-						 3200));*/
-			Serial.print("0");
 		}
 		if (receivedChars[0] == 'S') {
 			if (receivedChars[1] == 'r') {
 				// Set target RA
 
-				int hrs = (receivedChars[3] - '0') * 10
+				long hrs = (receivedChars[3] - '0') * 10
 						+ (receivedChars[4] - '0');
-				int mins = (receivedChars[6] - '0') * 10
+				long mins = (receivedChars[6] - '0') * 10
 						+ (receivedChars[7] - '0');
-				int secs = (receivedChars[9] - '0') * 10
+				long secs = (receivedChars[9] - '0') * 10
 						+ (receivedChars[10] - '0');
 
 				desiredRaSecs = hrs * 3600 + mins * 60 + secs;
 
 				float raDeg = 360 * ((desiredRaSecs / 86400));
 
-				desiredAz = map(raDeg, 0, 360, 0, 3200);
+				desiredAz = map(raDeg, 0, 86400, 0, 3200);
 				Serial.print("1");
 			}
 			if (receivedChars[1] == 'd') {
 				// Set target s
 
-				int multi = (receivedChars[3] == '+') ? 1 : -1;
+				long multi = (receivedChars[3] == '+') ? 1 : -1;
 
-				static char degC[2];
-				degC[0] = receivedChars[4];
-				degC[1] = receivedChars[5];
-
-				int deg = atoi(degC);
-
-				/*int deg = multi
+				long deg = multi
 						* ((receivedChars[4] - '0') * 10
-				 + (receivedChars[5] - '0'));*/
+								+ (receivedChars[5] - '0'));
 
-				int mins = (receivedChars[7] - '0') * 10
+				long mins = (receivedChars[7] - '0') * 10
 						+ (receivedChars[8] - '0');
-				int secs = (receivedChars[10] - '0') * 10
+				long secs = (receivedChars[10] - '0') * 10
 						+ (receivedChars[11] - '0');
-
-				Serial.println("Move to: ");
-				Serial.println(multi);
-
-				Serial.println(degC);
-				Serial.println(mins);
-				Serial.println(secs);
 
 				/*
 				 * 	decDEG = abs(DEC_tel_s) / 3600;
@@ -246,7 +239,6 @@ void showNewData(AccelStepper &az, AccelStepper &el) {
 				 */
 
 				desiredDecSecs = deg * 3600 + mins * 60 + secs;
-				Serial.println(desiredDecSecs);
 
 				float decDeg = 360 * ((abs(desiredRaSecs) / 86400));
 
@@ -287,13 +279,9 @@ void read_sensors(AccelStepper &az, AccelStepper &el) {
 	Serial.print(encoderValue1);
 	Serial.print(", ");
 	 Serial.println(encoderValue2);*/
-	encoderValue1 = az.currentPosition();
-	encoderValue2 = el.currentPosition();
+	encoderValue1 = az.currentPosition() % pulses_enc1;
+	encoderValue2 = el.currentPosition() % pulses_enc2;
 
-
-	if (encoderValue2 >= pulses_enc2 || encoderValue2 <= -pulses_enc2) {
-		encoderValue2 = 0;
-	}
 	int enc1 = encoderValue1 / 1500;
 	long encoder1_temp = encoderValue1 - (enc1 * 1500);
 	long map1 = enc1 * map(1500, 0, pulses_enc1, 0, 324000);
@@ -308,7 +296,6 @@ void read_sensors(AccelStepper &az, AccelStepper &el) {
 		Az_tel_s = 1296000 + Az_tel_s;
 	if (Az_tel_s >= 1296000)
 		Az_tel_s = Az_tel_s - 1296000;
-
 }
 
 void loopConversion() {
