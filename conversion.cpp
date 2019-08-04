@@ -15,14 +15,14 @@ int latMM = 25;
 int latSS = 37;
 
 // enter Pole Star right ascention (AR: HH:MM:SS)
-int poleAR_HH = 12;    // this means 2 hours, 52 minutes and 16 seconds
-int poleAR_MM = 50;
-int poleAR_SS = 53;
+int poleAR_HH = 2;    // this means 2 hours, 52 minutes and 16 seconds
+int poleAR_MM = 57;
+int poleAR_SS = 06;
 
 // enter Pole Star hour angle (H: HH:MM:SS)
-int poleH_HH = 8;
-int poleH_MM = 32;
-int poleH_SS = 7;
+int poleH_HH = 89;
+int poleH_MM = 20;
+int poleH_SS = 50;
 
 unsigned long seg_sideral = 1003;
 const double pi = 3.14159265358979324;
@@ -41,13 +41,16 @@ long AR_stell_s, DEC_stell_s;
 double cos_phi, sin_phi;
 double alt, azi;
 
-long pulses_enc1 = 36000;
-long pulses_enc2 = 36000;
+long pulses_enc1 = 3200;
+long pulses_enc2 = 3200;
 
 const byte numChars = 32;
 char receivedChars[numChars];
 
 boolean newData = false;
+boolean beginMove = false;
+
+int desiredRaSecs, desiredDecSecs;
 
 void initConversion() {
 	cos_phi = cos(
@@ -80,11 +83,6 @@ void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	cos_DEC = cos(delta_tel);
 	DEC_tel_s = long((delta_tel * 180.0 / pi) * 3600.0);
 
-	/*if (DEC_tel_s >= 324000) {
-		DEC_tel_s = DEC_tel_s % 324000;
-	} else if (DEC_tel_s <= 324000) {
-		DEC_tel_s = (DEC_tel_s % 324000) * -1;
-	 }*/
 	while (DEC_tel_s >= 324000) {
 		DEC_tel_s = DEC_tel_s - 324000;
 	}
@@ -100,11 +98,6 @@ void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	}
 	AR_tel_s = TSL - H_tel;
 
-	if (AR_tel_s >= 86400) {
-		AR_tel_s = DEC_tel_s % 86400;
-	} else if (DEC_tel_s < 0) {
-
-	}
 	while (AR_tel_s < 0) {
 		AR_tel_s = AR_tel_s + 86400;
 	}
@@ -129,15 +122,7 @@ void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 			+ (arHH * stepsPerSec * 3600);
 	const long elPosition = decDEG * stepsPerSec + (decMM * stepsPerSec * 60)
 			+ (decSS * stepsPerSec * 3600);
-	az.moveTo(azPosition);
-	el.moveTo(elPosition);
 
-	/*if (Serial.available()) {
-		Serial.print("Moving to az ");
-		Serial.print(azPosition);
-		Serial.print(", el ");
-		Serial.print(elPosition);
-	 }*/
 }
 
 void recvWithStartEndMarkers() {
@@ -171,7 +156,10 @@ void recvWithStartEndMarkers() {
 	}
 }
 
-void showNewData() {
+long desiredAz = 0;
+long desiredDec = 0;
+
+void showNewData(AccelStepper &az, AccelStepper &el) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			Serial.print(txAR);
@@ -179,14 +167,101 @@ void showNewData() {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
 			Serial.print(txDEC);
 		}
+		if (receivedChars[0] == 'Q') {
+			// Stop moving
+			az.moveTo(az.currentPosition());
+			el.moveTo(el.currentPosition());
+		}
+		if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
+			// Start moving
+			Serial.println("Moving from: ");
+			Serial.println(AR_tel_s);
+			Serial.println(DEC_tel_s);
+			Serial.println("Moving to: ");
+			Serial.println(desiredRaSecs);
+			Serial.println(desiredDecSecs);
+			az.moveTo(desiredRaSecs);
+				/*map(abs(abs(desiredRaSecs) - abs(AR_tel_s)), 0, 86400, 0,
+				 3200));*/
+			el.moveTo(desiredDecSecs);
+						/*map(abs(abs(desiredDecSecs) - abs(DEC_tel_s)), 0, 324000, 0,
+						 3200));*/
+			Serial.print("0");
+		}
+		if (receivedChars[0] == 'S') {
+			if (receivedChars[1] == 'r') {
+				// Set target RA
+
+				int hrs = (receivedChars[3] - '0') * 10
+						+ (receivedChars[4] - '0');
+				int mins = (receivedChars[6] - '0') * 10
+						+ (receivedChars[7] - '0');
+				int secs = (receivedChars[9] - '0') * 10
+						+ (receivedChars[10] - '0');
+
+				desiredRaSecs = hrs * 3600 + mins * 60 + secs;
+
+				float raDeg = 360 * ((desiredRaSecs / 86400));
+
+				desiredAz = map(raDeg, 0, 360, 0, 3200);
+				Serial.print("1");
+			}
+			if (receivedChars[1] == 'd') {
+				// Set target s
+
+				int multi = (receivedChars[3] == '+') ? 1 : -1;
+
+				static char degC[2];
+				degC[0] = receivedChars[4];
+				degC[1] = receivedChars[5];
+
+				int deg = atoi(degC);
+
+				/*int deg = multi
+						* ((receivedChars[4] - '0') * 10
+				 + (receivedChars[5] - '0'));*/
+
+				int mins = (receivedChars[7] - '0') * 10
+						+ (receivedChars[8] - '0');
+				int secs = (receivedChars[10] - '0') * 10
+						+ (receivedChars[11] - '0');
+
+				Serial.println("Move to: ");
+				Serial.println(multi);
+
+				Serial.println(degC);
+				Serial.println(mins);
+				Serial.println(secs);
+
+				/*
+				 * 	decDEG = abs(DEC_tel_s) / 3600;
+				 *	decMM = (abs(DEC_tel_s) - decDEG * 3600) / 60;
+				 *
+				 *
+				 *
+				 *	decSS = (abs(DEC_tel_s) - decDEG * 3600) - decMM * 60;
+				 *	decSS + decMM * 60 = DEC_tel_s - decDEG * 3600
+				 *	decSS + decMM * 60 + decDEG * 3600 = DEC_tel_s
+				 *
+				 */
+
+				desiredDecSecs = deg * 3600 + mins * 60 + secs;
+				Serial.println(desiredDecSecs);
+
+				float decDeg = 360 * ((abs(desiredRaSecs) / 86400));
+
+				desiredDec = map(decDeg, 0, 360, 0, 3200);
+				Serial.print("1");
+			}
+		}
 		newData = false;
 	}
 }
 
-void communication() {
+void communication(AccelStepper &az, AccelStepper &el) {
 
 	recvWithStartEndMarkers();
-	showNewData();
+	showNewData(az, el);
 	/*int i = 0;
 	input[i++] = Serial.read();
 	delay(5);

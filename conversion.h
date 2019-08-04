@@ -14,9 +14,9 @@
 void initConversion();
 void loopConversion();
 void AZ_to_EQ(AccelStepper &az, AccelStepper &el);
-void showNewData();
+void showNewData(AccelStepper &az, AccelStepper &el);
 void recvWithStartEndMarkers();
-void communication();
+void communication(AccelStepper &az, AccelStepper &el);
 void read_sensors(AccelStepper &az, AccelStepper &el);
 
 #endif /* CONVERSION_H_ */
