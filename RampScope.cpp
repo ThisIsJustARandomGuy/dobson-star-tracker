@@ -38,12 +38,33 @@ void setup() {
 	//axes.addStepper(azimuth);
 	//axes.addStepper(elevation);
 
-	azimuth.moveTo(1200);
-	elevation.moveTo(6400);
+	//azimuth.moveTo(12000);
+	//elevation.moveTo(6400);
 }
 
+int calc = -1;
+
 void loop() {
-	//loopConversion();
+	azimuth.run();
+	elevation.run();
+
+	loopConversion();
+	read_sensors(azimuth, elevation);
+
+	if (calc >= 30000 || calc == -1) {
+		//Serial.println("Getting new position");
+		azimuth.setCurrentPosition(random(0, 3200));
+		elevation.setCurrentPosition(random(0, 6400));
+
+		AZ_to_EQ(azimuth, elevation);
+		
+		//Serial.println("done...");
+		calc = 0;
+	}
+
+	if (Serial.available() > 0)
+		communication();
+	calc++;
 
 	/*long positions[2]; // 0 = azimuth; 1 = elevation
 
@@ -63,14 +84,11 @@ void loop() {
 		delay(1000);
 	}*/
 	// If at the end of travel go to the other end
-	if (azimuth.distanceToGo() == 0) {
+	/*if (azimuth.distanceToGo() == 0) {
 		azimuth.moveTo(-azimuth.currentPosition());
 	}
 
 	if (elevation.distanceToGo() == 0) {
 		elevation.moveTo(-elevation.currentPosition());
-	}
-
-	azimuth.run();
-	elevation.run();
+	 }*/
 }

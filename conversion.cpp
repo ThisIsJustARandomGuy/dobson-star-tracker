@@ -7,6 +7,7 @@
 #ifndef CONVERSION_H_
 
 #include <Arduino.h>
+#include <AccelStepper.h>
 #include "./conversion.h"
 
 int latHH = 47;    // this means 40º North
@@ -60,7 +61,7 @@ void initConversion() {
 		TSL = TSL - 86400;
 }
 
-void AZ_to_EQ() {
+void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	double delta_tel, sin_h, cos_h, sin_A, cos_A, sin_DEC, cos_DEC;
 	double H_telRAD, h_telRAD, A_telRAD;
 	long H_tel;
@@ -79,6 +80,11 @@ void AZ_to_EQ() {
 	cos_DEC = cos(delta_tel);
 	DEC_tel_s = long((delta_tel * 180.0 / pi) * 3600.0);
 
+	/*if (DEC_tel_s >= 324000) {
+		DEC_tel_s = DEC_tel_s % 324000;
+	} else if (DEC_tel_s <= 324000) {
+		DEC_tel_s = (DEC_tel_s % 324000) * -1;
+	 }*/
 	while (DEC_tel_s >= 324000) {
 		DEC_tel_s = DEC_tel_s - 324000;
 	}
@@ -94,11 +100,16 @@ void AZ_to_EQ() {
 	}
 	AR_tel_s = TSL - H_tel;
 
-	while (AR_tel_s >= 86400) {
-		AR_tel_s = AR_tel_s - 86400;
+	if (AR_tel_s >= 86400) {
+		AR_tel_s = DEC_tel_s % 86400;
+	} else if (DEC_tel_s < 0) {
+
 	}
 	while (AR_tel_s < 0) {
 		AR_tel_s = AR_tel_s + 86400;
+	}
+	while (AR_tel_s >= 86400) {
+		AR_tel_s = AR_tel_s - 86400;
 	}
 
 	arHH = AR_tel_s / 3600;
@@ -112,6 +123,21 @@ void AZ_to_EQ() {
 	sprintf(txAR, "%02d:%02d:%02d#", int(arHH), int(arMM), int(arSS));
 	sprintf(txDEC, "%c%02d%c%02d:%02d#", sDEC_tel, int(decDEG), 223, int(decMM),
 			int(decSS));
+
+	const float stepsPerSec = (3200 / (24 * 60 * 60));
+	const long azPosition = arSS * stepsPerSec + (arMM * stepsPerSec * 60)
+			+ (arHH * stepsPerSec * 3600);
+	const long elPosition = decDEG * stepsPerSec + (decMM * stepsPerSec * 60)
+			+ (decSS * stepsPerSec * 3600);
+	az.moveTo(azPosition);
+	el.moveTo(elPosition);
+
+	/*if (Serial.available()) {
+		Serial.print("Moving to az ");
+		Serial.print(azPosition);
+		Serial.print(", el ");
+		Serial.print(elPosition);
+	 }*/
 }
 
 void recvWithStartEndMarkers() {
@@ -147,14 +173,21 @@ void recvWithStartEndMarkers() {
 
 void showNewData() {
 	if (newData == true) {
-		Serial.print("This just in ... ");
-		Serial.println(receivedChars);
+		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
+			Serial.print(txAR);
+		}
+		if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
+			Serial.print(txDEC);
+		}
 		newData = false;
 	}
 }
 
 void communication() {
-	int i = 0;
+
+	recvWithStartEndMarkers();
+	showNewData();
+	/*int i = 0;
 	input[i++] = Serial.read();
 	delay(5);
 	while ((input[i++] = Serial.read()) != '#') {
@@ -170,19 +203,18 @@ void communication() {
 	if (input[1] == ':' && input[2] == 'G' && input[3] == 'D'
 			&& input[4] == '#') {
 		Serial.print(txDEC);
-	}
+	 }*/
 }
-
-long previousMillis = 0;
-long interval = 10000;
-
-void read_sensors() {
+void read_sensors(AccelStepper &az, AccelStepper &el) {
 	long h_deg, h_min, h_seg, A_deg, A_min, A_seg;
 
-	if (millis() - previousMillis > interval) {
-		encoderValue1 = random(0, pulses_enc1 * 10);
-		encoderValue2 = random(0, pulses_enc1 * 10);
-	}
+	/*Serial.print("Values are (az, el): ");
+	Serial.print(encoderValue1);
+	Serial.print(", ");
+	 Serial.println(encoderValue2);*/
+	encoderValue1 = az.currentPosition();
+	encoderValue2 = el.currentPosition();
+
 
 	if (encoderValue2 >= pulses_enc2 || encoderValue2 <= -pulses_enc2) {
 		encoderValue2 = 0;
@@ -213,13 +245,6 @@ void loopConversion() {
 			TSL = TSL - 86400;
 		}
 	}
-
-	read_sensors();
-	AZ_to_EQ();
-
-	if (Serial.available() > 0)
-		communication();
-
 	t_ciclo = millis() - t_ciclo;
 	t_ciclo_acumulado = t_ciclo_acumulado + t_ciclo;
 }
