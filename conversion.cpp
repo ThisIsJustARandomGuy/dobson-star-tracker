@@ -333,51 +333,111 @@ float ecliptic_longitude_sun(float T) {
 long jul_day_2k = 2451545;
 
 // According to http://www.geoastro.de/elevaz/basics/index.htm
-
+const long timeLast;
 const long LAT = 47.426430;
 const long LNG = 12.849180;
-void AZ_TO_EQ() {
-	long current_h = 20;
-	long current_m = 26;
-	long current_s = 00;
+const short TIME_FACTOR = 60;
+float start_lat = 52.5;
+float start_lng = -1.91666667;
 
-	float jul_day = 2458699.8513;
+float current_jul_magic_year = -731.5; // 1998 //6938.5;// 2019
+float current_jul_magic_mo = 212; // August
 
-	long jul_day_12h = 2458699;
+const int H_TIMEZONE_CORRECTION = 0;
 
-	float jul_days_s2k = jul_day_2k - jul_day;
+float deg2rad(float degs) {
+	return degs * pi / 180;
+}
+
+float rad2deg(float rad) {
+	return rad * 180 / pi;
+}
+
+void EQ_to_AZ(float ra, float dec) {
+	long current_year = 1998;
+	long current_month = 8;
+	long current_day = 10;
+
+	// KEEP TIME
+	long passed_s = ((millis() * TIME_FACTOR) / 1000);
+	long current_h = 23;
+	long current_m = 10;
+	long current_s = 00 + passed_s;
+	//Serial.println(current_s);
+
+	while (current_s >= 60) {
+		current_m++;
+		current_s -= 60;
+	}
+	while (current_m >= 60) {
+		current_h++;
+		current_m -= 60;
+	}
+	/*float jul_day = 2458699.8513 + passed_s / 86400.0;
+	 long jul_day_12h = 2458699;*/
+	float jul_day = (((current_m / 60.0) + (current_h)) / 24.0)
+			+ current_jul_magic_mo + current_day + current_jul_magic_year;
+	
+	while (current_h >= 24) {
+		jul_day++;
+		current_h -= 24;
+	}
+
+	float utc_current = (current_h - H_TIMEZONE_CORRECTION) + (current_m / 60.0)
+			+ (current_s / 3600.0);
+
+	while (utc_current < 0) {
+		utc_current += 24;
+	}
+	while (utc_current >= 24) {
+		utc_current -= 24;
+	}
+
+	// END TIMEKEEPING
+	
+	float jul_days_s2k = jul_day;
 
 	// number of Julian centuaries since Jan 1, 2000, 12 UT
-	float T = jul_days_s2k / 36525; // T
+	float jul_centuaries = jul_days_s2k / 36525; // T
 
-	float L = ecliptic_longitude_sun(T);
+	// local siderial time
+	float LST = 100.46 + 0.985647 * jul_days_s2k + start_lng + 15 * utc_current;
+	while (LST < 0) {
+		LST += 360;
+	}
 
-	/*
-	 * Ecliptic longitude to RA and delta(DEC)
-	 */
+	float hour_angle = LST - ra;
+	while (hour_angle < 0) {
+		hour_angle += 360.0;
+	}
 
-	// obliquity eps of ecliptic:
-	float eps = 23.0 + 26.0 / 60.0 + 21.448 / 3600.0
-			- (46.8150 * T + 0.00059 * T * T - 0.001813 * T * T * T) / 3600;
-	float X = cos(L);
-	float Y = cos(eps) * sin(L);
-	float Z = sin(eps) * sin(L);
-	float R = sqrt(1.0 - Z * Z);
+	// Calculate altitude
+	float sin_alt = sin(deg2rad(dec)) * sin(deg2rad(start_lat))
+			+ cos(deg2rad(dec)) * cos(deg2rad(start_lat))
+					* cos(deg2rad(hour_angle));
+	float alt = rad2deg(asin(sin_alt));
 
-	float delta = atan(Z / R); //in degrees
-	float RA = (24 / 180) * atan(Y / (X + R)); // in hours
+	// Calculate azimuth
+	float cos_a = (sin(deg2rad(dec))
+			- sin(deg2rad(alt)) * sin(deg2rad(start_lat)))
+			/ (cos(deg2rad(alt)) * cos(deg2rad(start_lat)));
+	float a = rad2deg(acos(cos_a));
+	
+	float az;
+	if (sin(deg2rad(hour_angle)) > 0) {
+		az = 360 - a;
+	} else {
+		az = a;
+	}
 
-	// Siderial time at Greenwich
-	float theta0 = 280.46061837 + 360.98564736629 * (T - 2451545.0)
-			+ 0.000387933 * T * T - T * T * T / 38710000.0;
-
-	// Local siderial time
-	float theta = theta0 + LNG;
-	float tau = theta - RA;
-
-	float sin_h = sin(LAT) * sin(delta) + cos(LAT) * cos(delta) * cos(tau);
-	float tan_az = -sin(tau) / (cos(LAT) * tan(delta) - sin(LAT) * cos(tau));
-
+	Serial.print("RA ");
+	Serial.print(ra);
+	Serial.print(" and DEC ");
+	Serial.print(dec);
+	Serial.print(" to ALTAZ is: ALT ");
+	Serial.print(alt);
+	Serial.print(" AZ ");
+	Serial.println(az);
 }
 
 //#endif

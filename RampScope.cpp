@@ -15,6 +15,23 @@ AccelStepper elevation(AccelStepper::DRIVER, Y_STEP_PIN, Y_DIR_PIN);
 
 Moon dummyMoon;
 
+float ra_h = 16;
+float ra_m = 41.7;
+float ra_deg = (ra_h + ra_m / 60) * 15;
+
+float dec_d = 36;
+float dec_m = 28;
+float dec_deg = dec_d + dec_m / 60;
+
+float start_y = 2019;
+float start_mo = 8;
+float start_d = 5;
+
+float start_h = 23;
+float start_m = 10;
+float start_s = 00;
+
+
 void setup() {
 	Serial.begin(9600);
 
@@ -22,17 +39,20 @@ void setup() {
 
 	// Enable azimuth
 	pinMode(X_ENABLE_PIN, OUTPUT);
-	digitalWrite(X_ENABLE_PIN, LOW); // Enable
+	digitalWrite(X_ENABLE_PIN, HIGH); // Enable
 
 	// Enable elevation
 	pinMode(Y_ENABLE_PIN, OUTPUT);
-	digitalWrite(Y_ENABLE_PIN, LOW);
+	digitalWrite(Y_ENABLE_PIN, HIGH);
 
 	azimuth.setMaxSpeed(30000);
 	azimuth.setAcceleration(500);
 
 	elevation.setMaxSpeed(30000);
 	elevation.setAcceleration(500);
+
+	Serial.println(ra_deg);
+	Serial.println(dec_deg);
 
 	// Add steppers to mutlistepper
 	//axes.addStepper(azimuth);
@@ -63,8 +83,11 @@ void loop() {
 		calc = 0;
 	}
 
+	EQ_to_AZ(ra_deg, dec_deg);
+
 	if (Serial.available() > 0)
 		communication(azimuth, elevation);
+
 	calc++;
 
 	/*long positions[2]; // 0 = azimuth; 1 = elevation
