@@ -311,6 +311,75 @@ void loopConversion() {
 	t_ciclo_acumulado = t_ciclo_acumulado + t_ciclo;
 }
 
+
+float ecliptic_longitude_sun(float T) {
+	float k = 2 * pi / 360;
+
+	//mean anomaly, degree
+	float M = 357.52910 + 35999.05030 * T - 0.0001559 * T * T
+			- 0.00000048 * T * T * T;
+	// mean longitude, degree
+	float L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T * T;
+	// Sun's equation of center
+	float DL = (1.914600 - 0.004817 * T - 0.000014 * T * T) * sin(k * M)
+			+ (0.019993 - 0.000101 * T) * sin(k * 2 * M)
+			+ 0.000290 * sin(k * 3 * M);
+
+	// true longitude, degree
+	return L0 + DL;
+}
+
+
+long jul_day_2k = 2451545;
+
+// According to http://www.geoastro.de/elevaz/basics/index.htm
+
+const long LAT = 47.426430;
+const long LNG = 12.849180;
+void AZ_TO_EQ() {
+	long current_h = 20;
+	long current_m = 26;
+	long current_s = 00;
+
+	float jul_day = 2458699.8513;
+
+	long jul_day_12h = 2458699;
+
+	float jul_days_s2k = jul_day_2k - jul_day;
+
+	// number of Julian centuaries since Jan 1, 2000, 12 UT
+	float T = jul_days_s2k / 36525; // T
+
+	float L = ecliptic_longitude_sun(T);
+
+	/*
+	 * Ecliptic longitude to RA and delta(DEC)
+	 */
+
+	// obliquity eps of ecliptic:
+	float eps = 23.0 + 26.0 / 60.0 + 21.448 / 3600.0
+			- (46.8150 * T + 0.00059 * T * T - 0.001813 * T * T * T) / 3600;
+	float X = cos(L);
+	float Y = cos(eps) * sin(L);
+	float Z = sin(eps) * sin(L);
+	float R = sqrt(1.0 - Z * Z);
+
+	float delta = atan(Z / R); //in degrees
+	float RA = (24 / 180) * atan(Y / (X + R)); // in hours
+
+	// Siderial time at Greenwich
+	float theta0 = 280.46061837 + 360.98564736629 * (T - 2451545.0)
+			+ 0.000387933 * T * T - T * T * T / 38710000.0;
+
+	// Local siderial time
+	float theta = theta0 + LNG;
+	float tau = theta - RA;
+
+	float sin_h = sin(LAT) * sin(delta) + cos(LAT) * cos(delta) * cos(tau);
+	float tan_az = -sin(tau) / (cos(LAT) * tan(delta) - sin(LAT) * cos(tau));
+
+}
+
 //#endif
 
 #endif

@@ -52,7 +52,7 @@ void loop() {
 	loopConversion();
 	read_sensors(azimuth, elevation);
 
-	if (calc >= 10000 || calc == -1) {
+	if (calc >= 10000 || calc == -1 || Serial.available() > 0) {
 		//azimuth.setCurrentPosition(random(0, 3200));
 		//elevation.setCurrentPosition(random(0, 6400));
 
