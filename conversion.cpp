@@ -353,7 +353,10 @@ float rad2deg(float rad) {
 	return rad * 180 / pi;
 }
 
-void EQ_to_AZ(float ra, float dec) {
+volatile float rlyaz = 0;
+volatile float rlydec = 0;
+
+void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 	long current_year = 1998;
 	long current_month = 8;
 	long current_day = 10;
@@ -437,9 +440,14 @@ void EQ_to_AZ(float ra, float dec) {
 	Serial.print(" to ALTAZ is: ALT ");
 	Serial.print(alt);
 	Serial.print(" AZ ");
-	Serial.println(az);
+	Serial.print(az);
+	Serial.print("; Steppers: az");
+	Serial.print(map(az, 0., 360., 0, 3200));
+	Serial.print("/dec ");
+	Serial.println(map(alt, 0., 360., 0, 32000));
+	az_s.moveTo(map(az, 0., 360., 0, 32000));
+	el_s.moveTo(map(alt, 0., 360., 0, 3200));
 }
-
 //#endif
 
 #endif

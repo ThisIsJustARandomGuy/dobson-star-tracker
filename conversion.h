@@ -22,6 +22,6 @@ void read_sensors(AccelStepper &az, AccelStepper &el);
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-void EQ_to_AZ(float ra, float dec);
+void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s);
 
 #endif /* CONVERSION_H_ */
