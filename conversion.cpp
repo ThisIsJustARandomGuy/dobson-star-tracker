@@ -336,7 +336,7 @@ long jul_day_2k = 2451545;
 const long timeLast;
 const long LAT = 47.426430;
 const long LNG = 12.849180;
-const short TIME_FACTOR = 600;
+const short TIME_FACTOR = 1000;
 float start_lat = 52.5;
 float start_lng = -1.91666667;
 
@@ -355,6 +355,10 @@ float rad2deg(float rad) {
 
 volatile float rlyaz = 0;
 volatile float rlydec = 0;
+
+int pr = -1;
+long last_desired_az = 0;
+long last_desired_dec = 0;
 
 void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 	long current_year = 1998;
@@ -433,26 +437,48 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 		az = a;
 	}
 
-	Serial.print("RA ");
-	Serial.print(ra);
-	Serial.print(" and DEC ");
-	Serial.print(dec);
-	Serial.print(" to ALTAZ is: ALT ");
-	Serial.print(alt);
-	Serial.print(" AZ ");
-	Serial.print(az);
-	Serial.print("; Steppers: az");
-	Serial.print((long) ((az / 360) * 32000));
-	Serial.print("/dec ");
-	Serial.println((long) ((alt / 360) * 32000));
+
+	long desired_az = (long) round((az / 360) * 320000);
+	long desired_dec = (long) round((alt / 360) * 3200000);
+
+
+
+
+	if (pr == -1 || pr >= 10) {
+		Serial.print("RA ");
+		Serial.print(ra);
+		Serial.print(" and DEC ");
+		Serial.print(dec);
+		Serial.print(" to ALTAZ is: ALT ");
+		Serial.print(alt);
+		Serial.print(" AZ ");
+		Serial.print(az);
+		Serial.print("; Steppers: az");
+		Serial.print(desired_az);
+		Serial.print("/dec ");
+		Serial.print(desired_dec);
+		Serial.print(" diff ");
+		Serial.print(last_desired_az - desired_az);
+		Serial.print(" / ");
+		Serial.println(last_desired_dec - desired_dec);
+		pr = 0;
+	}
+	
+	
 	if (!isHomed) {
-		az_s.setCurrentPosition(round((az / 360) * 32000));
-		el_s.setCurrentPosition(round((alt / 360) * 320000));
+		last_desired_az = desired_az;
+		last_desired_dec = desired_dec;
+		az_s.setCurrentPosition(desired_az);
+		el_s.setCurrentPosition(desired_dec);
 		isHomed = true;
 	} else {
-		az_s.moveTo((long) round((az / 360) * 32000));
-		el_s.moveTo((long) round((alt / 360) * 320000));
+		az_s.move(last_desired_az - desired_az);
+		el_s.move(last_desired_dec - desired_dec);
+
+		last_desired_az = desired_az;
+		last_desired_dec = desired_dec;
 	}
+	pr++;
 }
 //#endif
 
