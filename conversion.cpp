@@ -336,7 +336,7 @@ long jul_day_2k = 2451545;
 const long timeLast;
 const long LAT = 47.426430;
 const long LNG = 12.849180;
-const short TIME_FACTOR = 60;
+const short TIME_FACTOR = 600;
 float start_lat = 52.5;
 float start_lng = -1.91666667;
 
@@ -442,11 +442,17 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 	Serial.print(" AZ ");
 	Serial.print(az);
 	Serial.print("; Steppers: az");
-	Serial.print(map(az, 0., 360., 0, 3200));
+	Serial.print((long) ((az / 360) * 32000));
 	Serial.print("/dec ");
-	Serial.println(map(alt, 0., 360., 0, 32000));
-	az_s.moveTo(map(az, 0., 360., 0, 32000));
-	el_s.moveTo(map(alt, 0., 360., 0, 3200));
+	Serial.println((long) ((alt / 360) * 32000));
+	if (!isHomed) {
+		az_s.setCurrentPosition(round((az / 360) * 32000));
+		el_s.setCurrentPosition(round((alt / 360) * 320000));
+		isHomed = true;
+	} else {
+		az_s.moveTo((long) round((az / 360) * 32000));
+		el_s.moveTo((long) round((alt / 360) * 320000));
+	}
 }
 //#endif
 
