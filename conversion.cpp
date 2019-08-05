@@ -336,7 +336,7 @@ long jul_day_2k = 2451545;
 const long timeLast;
 const long LAT = 47.426430;
 const long LNG = 12.849180;
-const short TIME_FACTOR = 1000;
+const short TIME_FACTOR = 3600; // 1h per sec
 float start_lat = 52.5;
 float start_lng = -1.91666667;
 
@@ -344,6 +344,9 @@ float current_jul_magic_year = -731.5; // 1998 //6938.5;// 2019
 float current_jul_magic_mo = 212; // August
 
 const int H_TIMEZONE_CORRECTION = 0;
+
+const int AZ_STEPS_PER_REV = 3200;
+const int DEC_STEPS_PER_REV = 32000;
 
 float deg2rad(float degs) {
 	return degs * pi / 180;
@@ -438,10 +441,8 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 	}
 
 
-	long desired_az = (long) round((az / 360) * 320000);
-	long desired_dec = (long) round((alt / 360) * 3200000);
-
-
+	long desired_az = (long) round((az / 360) * AZ_STEPS_PER_REV);
+	long desired_dec = (long) round((alt / 360) * DEC_STEPS_PER_REV);
 
 
 	if (pr == -1 || pr >= 10) {
