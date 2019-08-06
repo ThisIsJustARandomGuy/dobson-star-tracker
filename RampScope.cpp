@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <AccelStepper.h>
+#include <TimerOne.h>
 //#include <MultiStepper.h>
 
 #include "./Pins.h"
@@ -35,15 +36,15 @@ float start_s = 00;
 void setup() {
 	Serial.begin(9600);
 
-	initConversion();
+	//initConversion();
 
 	// Enable azimuth
 	pinMode(X_ENABLE_PIN, OUTPUT);
-	digitalWrite(X_ENABLE_PIN, HIGH); // Enable
+	digitalWrite(X_ENABLE_PIN, LOW); // Enable
 
 	// Enable elevation
 	pinMode(Y_ENABLE_PIN, OUTPUT);
-	digitalWrite(Y_ENABLE_PIN, HIGH);
+	digitalWrite(Y_ENABLE_PIN, LOW);
 
 	azimuth.setMaxSpeed(30000);
 	azimuth.setAcceleration(500);
@@ -53,6 +54,8 @@ void setup() {
 
 	Serial.println(ra_deg);
 	Serial.println(dec_deg);
+	//Timer1.initialize(100);
+	//Timer1.attachInterrupt(stepperMove);
 
 	// Add steppers to mutlistepper
 	//axes.addStepper(azimuth);
@@ -69,24 +72,30 @@ void loop() {
 	azimuth.run();
 	elevation.run();
 
-	loopConversion();
-	read_sensors(azimuth, elevation);
+//	loopConversion();
+//	read_sensors(azimuth, elevation);
 
-	if (calc >= 10000 || calc == -1 || Serial.available() > 0) {
+	if (calc >= 5000 || calc == -1 || Serial.available() > 0) {
 		//azimuth.setCurrentPosition(random(0, 3200));
 		//elevation.setCurrentPosition(random(0, 6400));
 
-		AZ_to_EQ(azimuth, elevation);
+		//AZ_to_EQ(azimuth, elevation);
+		long millis_start = micros();
+		EQ_to_AZ(ra_deg, dec_deg, azimuth, elevation);
+		long calc_time = micros() - millis_start;
+		if (DEBUG == true) {
+			Serial.print("Calc took ");
+			Serial.print(calc_time / 1000.);
+			Serial.println("ms");
+		}
 		//Serial.println(azimuth.targetPosition());
 		
 		//Serial.println("done...");
 		calc = 0;
 	}
 
-	EQ_to_AZ(ra_deg, dec_deg);
-
-	if (Serial.available() > 0)
-		communication(azimuth, elevation);
+	/*if (Serial.available() > 0)
+	 communication(azimuth, elevation);*/
 
 	calc++;
 

@@ -64,6 +64,9 @@ void initConversion() {
 		TSL = TSL - 86400;
 }
 
+long last_reported_az = 0;
+long last_reported_dec = 0;
+
 void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	double delta_tel, sin_h, cos_h, sin_A, cos_A, sin_DEC, cos_DEC;
 	double H_telRAD, h_telRAD, A_telRAD;
@@ -336,7 +339,8 @@ long jul_day_2k = 2451545;
 const long timeLast;
 const long LAT = 47.426430;
 const long LNG = 12.849180;
-const short TIME_FACTOR = 3600; // 1h per sec
+// TIME MULTI FACTOR
+const short TIME_FACTOR = 1; // 1min per sec
 float start_lat = 52.5;
 float start_lng = -1.91666667;
 
@@ -345,8 +349,8 @@ float current_jul_magic_mo = 212; // August
 
 const int H_TIMEZONE_CORRECTION = 0;
 
-const int AZ_STEPS_PER_REV = 3200;
-const int DEC_STEPS_PER_REV = 32000;
+const long AZ_STEPS_PER_REV = 320000;
+const long DEC_STEPS_PER_REV = 3200000;
 
 float deg2rad(float degs) {
 	return degs * pi / 180;
@@ -363,17 +367,21 @@ int pr = -1;
 long last_desired_az = 0;
 long last_desired_dec = 0;
 
+long current_year = 1998;
+long current_month = 8;
+long current_day = 10;
+
 void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
-	long current_year = 1998;
-	long current_month = 8;
-	long current_day = 10;
+	long millis_start = millis();
+
+	long desired_az, desired_dec;
+	float az;
 
 	// KEEP TIME
-	long passed_s = ((millis() * TIME_FACTOR) / 1000);
+	long passed_s = ((millis_start * TIME_FACTOR) / 1000);
 	long current_h = 23;
 	long current_m = 10;
 	long current_s = 00 + passed_s;
-	//Serial.println(current_s);
 
 	while (current_s >= 60) {
 		current_m++;
@@ -383,13 +391,13 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 		current_h++;
 		current_m -= 60;
 	}
-	/*float jul_day = 2458699.8513 + passed_s / 86400.0;
-	 long jul_day_12h = 2458699;*/
-	float jul_day = (((current_m / 60.0) + (current_h)) / 24.0)
+
+	// Julian Days since 2000
+	float jul_days_s2k = (((current_m / 60.0) + (current_h)) / 24.0)
 			+ current_jul_magic_mo + current_day + current_jul_magic_year;
 	
 	while (current_h >= 24) {
-		jul_day++;
+		jul_days_s2k++;
 		current_h -= 24;
 	}
 
@@ -404,13 +412,11 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 	}
 
 	// END TIMEKEEPING
-	
-	float jul_days_s2k = jul_day;
 
 	// number of Julian centuaries since Jan 1, 2000, 12 UT
 	float jul_centuaries = jul_days_s2k / 36525; // T
 
-	// local siderial time
+	// local siderian time
 	float LST = 100.46 + 0.985647 * jul_days_s2k + start_lng + 15 * utc_current;
 	while (LST < 0) {
 		LST += 360;
@@ -421,31 +427,37 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 		hour_angle += 360.0;
 	}
 
+	//float sin_start_lat = sin(deg2rad(start_lat));
+
+	float rad_dec = deg2rad(dec);
+	float rad_start_lat = deg2rad(start_lat);
+	float rad_hour_angle = deg2rad(hour_angle);
+
 	// Calculate altitude
-	float sin_alt = sin(deg2rad(dec)) * sin(deg2rad(start_lat))
-			+ cos(deg2rad(dec)) * cos(deg2rad(start_lat))
-					* cos(deg2rad(hour_angle));
-	float alt = rad2deg(asin(sin_alt));
+	float sin_alt = sin(rad_dec) * sin(rad_start_lat)
+			+ cos(rad_dec) * cos(rad_start_lat)
+					* cos(rad_hour_angle);
+
+	float rad_alt = asin(sin_alt);
+	float alt = rad2deg(rad_alt);
 
 	// Calculate azimuth
-	float cos_a = (sin(deg2rad(dec))
-			- sin(deg2rad(alt)) * sin(deg2rad(start_lat)))
-			/ (cos(deg2rad(alt)) * cos(deg2rad(start_lat)));
-	float a = rad2deg(acos(cos_a));
+	float cos_a = (sin(rad_dec) - sin(rad_alt) * sin(rad_start_lat))
+			/ (cos(rad_alt) * cos(rad_start_lat));
+	float rad_a = acos(cos_a);
+	float a = rad2deg(cos_a);
 	
-	float az;
-	if (sin(deg2rad(hour_angle)) > 0) {
+	if (sin(rad_hour_angle) > 0) {
 		az = 360 - a;
 	} else {
 		az = a;
 	}
 
 
-	long desired_az = (long) round((az / 360) * AZ_STEPS_PER_REV);
-	long desired_dec = (long) round((alt / 360) * DEC_STEPS_PER_REV);
-
-
-	if (pr == -1 || pr >= 10) {
+	desired_az = (long) round((az / 360) * AZ_STEPS_PER_REV);
+	desired_dec = (long) round((alt / 360) * DEC_STEPS_PER_REV);
+	
+	if (DEBUG == true && (pr == -1 || pr >= 10)) {
 		Serial.print("RA ");
 		Serial.print(ra);
 		Serial.print(" and DEC ");
@@ -459,9 +471,12 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 		Serial.print("/dec ");
 		Serial.print(desired_dec);
 		Serial.print(" diff ");
-		Serial.print(last_desired_az - desired_az);
+		Serial.print(last_reported_az - desired_az);
 		Serial.print(" / ");
-		Serial.println(last_desired_dec - desired_dec);
+		Serial.println(last_reported_dec - desired_dec);
+
+		last_reported_az = desired_az;
+		last_reported_dec = desired_dec;
 		pr = 0;
 	}
 	
