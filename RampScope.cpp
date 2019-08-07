@@ -3,7 +3,7 @@
 #include <TimerOne.h>
 //#include <MultiStepper.h>
 
-#include "./Pins.h"
+#include "./config.h"
 #include "./Moon.h"
 
 #include "./conversion.h"
@@ -46,8 +46,8 @@ void setup() {
 	pinMode(Y_ENABLE_PIN, OUTPUT);
 	digitalWrite(Y_ENABLE_PIN, LOW);
 
-	azimuth.setMaxSpeed(30000);
-	azimuth.setAcceleration(500);
+	azimuth.setMaxSpeed(300);
+	azimuth.setAcceleration(100);
 
 	elevation.setMaxSpeed(30000);
 	elevation.setAcceleration(500);
@@ -75,7 +75,7 @@ void loop() {
 //	loopConversion();
 //	read_sensors(azimuth, elevation);
 
-	if (calc >= 5000 || calc == -1 || Serial.available() > 0) {
+	if (calc >= 10000 || calc == -1 || Serial.available() > 0) {
 		//azimuth.setCurrentPosition(random(0, 3200));
 		//elevation.setCurrentPosition(random(0, 6400));
 
@@ -83,7 +83,7 @@ void loop() {
 		long millis_start = micros();
 		EQ_to_AZ(ra_deg, dec_deg, azimuth, elevation);
 		long calc_time = micros() - millis_start;
-		if (DEBUG == true) {
+		if (false && DEBUG == true) {
 			Serial.print("Calc took ");
 			Serial.print(calc_time / 1000.);
 			Serial.println("ms");

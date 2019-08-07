@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 #include <AccelStepper.h>
+
+#include "./config.h"
 #include "./conversion.h"
 
 int latHH = 47;    // this means 40ยบ North
@@ -63,9 +65,6 @@ void initConversion() {
 	while (TSL >= 86400)
 		TSL = TSL - 86400;
 }
-
-long last_reported_az = 0;
-long last_reported_dec = 0;
 
 void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	double delta_tel, sin_h, cos_h, sin_A, cos_A, sin_DEC, cos_DEC;
@@ -337,20 +336,16 @@ long jul_day_2k = 2451545;
 
 // According to http://www.geoastro.de/elevaz/basics/index.htm
 const long timeLast;
-const long LAT = 47.426430;
-const long LNG = 12.849180;
-// TIME MULTI FACTOR
-const short TIME_FACTOR = 10; // 1min per sec
-float start_lat = 52.5;
-float start_lng = -1.91666667;
+
+#ifdef GPS_FIXED_POS
+#define current_lat 52.5
+#define current_lng -1.91666667
+#else
+// GPS CODE ensues
+#endif
 
 float current_jul_magic_year = -731.5; // 1998 //6938.5;// 2019
 float current_jul_magic_mo = 212; // August
-
-const int H_TIMEZONE_CORRECTION = 0;
-
-const long AZ_STEPS_PER_REV = 32000;
-const long DEC_STEPS_PER_REV = 32000000;
 
 float deg2rad(float degs) {
 	return degs * pi / 180;
@@ -363,124 +358,125 @@ float rad2deg(float rad) {
 volatile float rlyaz = 0;
 volatile float rlydec = 0;
 
+// These are variables that are only needed when debug mode is enabled
+#ifdef DEBUG
+
+// These are variables that require debug mode and serial debug mode to be enabled
+#ifdef DEBUG_SERIAL
+
 int pr = -1;
+long last_reported_az = 0;
+long last_reported_dec = 0;
+
+#endif // DEBUG_SERIAL
+#endif // DEBUG
+
 long last_desired_az = 0;
 long last_desired_dec = 0;
 
 long current_year = 1998;
 long current_month = 8;
-long current_day = 10;
 
-void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
-	long millis_start = millis();
-
-	long desired_az, desired_dec;
-	float az;
-
+void EQ_to_AZ(float rightAscension, float declination, AccelStepper &az_s, AccelStepper &el_s) {
 	// KEEP TIME
-	long passed_s = ((millis_start * TIME_FACTOR) / 1000);
-	long current_h = 23;
-	long current_m = 10;
-	long current_s = 00 + passed_s;
+	// TODO Month rollover etc
+	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
 
-	while (current_s >= 60) {
-		current_m++;
-		current_s -= 60;
+	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
+
+	long current_day = 10;
+	long current_hour = 23;
+	long current_minute = 10;
+	long current_second = 00 + passed_seconds;
+
+	// Second, Minute and Hour rollover
+	while (current_second >= 60) {
+		current_minute++;
+		current_second -= 60;
 	}
-	while (current_m >= 60) {
-		current_h++;
-		current_m -= 60;
+	while (current_minute >= 60) {
+		current_hour++;
+		current_minute -= 60;
+	}
+	while (current_hour >= 24) {
+		current_day += 1;
+		current_hour -= 24;
+	}
+
+	// Current time in UTC with hour rollover
+	float current_utc = (current_hour + TIMEZONE_CORRECTION_H) + (current_minute / 60.0)
+			+ (current_second / 3600.0);
+
+	while (current_utc < 0) {
+		current_utc += 24;
+	}
+	while (current_utc >= 24) {
+		current_utc -= 24;
 	}
 
 	// Julian Days since 2000
-	float jul_days_s2k = (((current_m / 60.0) + (current_h)) / 24.0)
+	float jul_days_s2k = (((current_minute / 60.0) + (current_hour)) / 24.0)
 			+ current_jul_magic_mo + current_day + current_jul_magic_year;
-	
-	while (current_h >= 24) {
-		jul_days_s2k++;
-		current_h -= 24;
-	}
-
-	float utc_current = (current_h - H_TIMEZONE_CORRECTION) + (current_m / 60.0)
-			+ (current_s / 3600.0);
-
-	while (utc_current < 0) {
-		utc_current += 24;
-	}
-	while (utc_current >= 24) {
-		utc_current -= 24;
-	}
-
 	// END TIMEKEEPING
 
 	// number of Julian centuaries since Jan 1, 2000, 12 UT
-	float jul_centuaries = jul_days_s2k / 36525; // T
+	const float jul_centuaries = jul_days_s2k / 36525;
 
-	// local siderian time
-	float LST = 100.46 + 0.985647 * jul_days_s2k + start_lng + 15 * utc_current;
-	while (LST < 0) {
-		LST += 360;
+	// calculate the local siderian time (in degrees)
+	float local_siderian_time = 100.46 + 0.985647 * jul_days_s2k + current_lng
+			+ 15 * current_utc;
+
+	// Ensure that local_siderian_time is greater than 0 degrees
+	while (local_siderian_time < 0) {
+		local_siderian_time += 360;
 	}
 
-	float hour_angle = LST - ra;
+	// The hour angle is the difference between the local siderian time and the right ascension in degrees of our target object...
+	float hour_angle = local_siderian_time - rightAscension;
+	// ...but we need to ensure that it's greater than 0
 	while (hour_angle < 0) {
 		hour_angle += 360.0;
 	}
 
-	//float sin_start_lat = sin(deg2rad(start_lat));
+	// Convert various values from degrees to radians since the trigonometry functions work with radians
+	const float rad_declination = deg2rad(declination);
+	const float rad_current_lat = deg2rad(current_lat); // TODO this can be a constant if GPS_FIXED_POS is set
+	const float rad_hour_angle = deg2rad(hour_angle);
 
-	float rad_dec = deg2rad(dec);
-	float rad_start_lat = deg2rad(start_lat);
-	float rad_hour_angle = deg2rad(hour_angle);
+	// These values are used multiple times throughout calculations, so we pull them out
+	const float sin_rad_declination = sin(rad_declination);
+	const float sin_rad_current_lat = sin(rad_current_lat);
+	const float cos_rad_current_lat = cos(rad_current_lat);
 
 	// Calculate altitude
-	float sin_alt = sin(rad_dec) * sin(rad_start_lat)
-			+ cos(rad_dec) * cos(rad_start_lat)
+	const float sin_altitude = sin_rad_declination * sin_rad_current_lat
+			+ cos(rad_declination) * cos_rad_current_lat
 					* cos(rad_hour_angle);
 
-	float rad_alt = asin(sin_alt);
-	float alt = rad2deg(rad_alt);
+	const float rad_altitude = asin(sin_altitude);
+
+	// This is our resulting altitude in degrees
+	const float deg_altitude = rad2deg(rad_altitude); // RESULT
 
 	// Calculate azimuth
-	float cos_a = (sin(rad_dec) - sin(rad_alt) * sin(rad_start_lat))
-			/ (cos(rad_alt) * cos(rad_start_lat));
-	float rad_a = acos(cos_a);
-	float a = rad2deg(cos_a);
+	const float cos_a = (sin_rad_declination - sin(rad_altitude) * sin_rad_current_lat)
+			/ (cos(rad_altitude) * cos_rad_current_lat);
+	const float rad_a = acos(cos_a);
+	const float a = rad2deg(cos_a);
 	
+	// Azimuth in degrees is either 360-a or a, depending on whether sin(rad_hour_angle) is positive.
+	// It be like it is and it's also the second part of the result
+	float deg_azimuth;
 	if (sin(rad_hour_angle) > 0) {
-		az = 360 - a;
+		deg_azimuth = 360 - a;
 	} else {
-		az = a;
+		deg_azimuth = a;
 	}
 
+	// TODO Is this really necessary to have it this complex? No
+	const long desired_az = (long) round((deg_azimuth / 360) * X_STEPS_PER_REV);
+	const long desired_dec = (long) round((deg_altitude / 360) * Y_STEPS_PER_REV);
 
-	desired_az = (long) round((az / 360) * AZ_STEPS_PER_REV);
-	desired_dec = (long) round((alt / 360) * DEC_STEPS_PER_REV);
-	
-	if (DEBUG == true && (pr == -1 || pr >= 10)) {
-		Serial.print("RA ");
-		Serial.print(ra);
-		Serial.print(" and DEC ");
-		Serial.print(dec);
-		Serial.print(" to ALTAZ is: ALT ");
-		Serial.print(alt);
-		Serial.print(" AZ ");
-		Serial.print(az);
-		Serial.print("; Steppers: az");
-		Serial.print(desired_az);
-		Serial.print("/dec ");
-		Serial.print(desired_dec);
-		Serial.print(" diff ");
-		Serial.print(last_reported_az - desired_az);
-		Serial.print(" / ");
-		Serial.println(last_reported_dec - desired_dec);
-
-		last_reported_az = desired_az;
-		last_reported_dec = desired_dec;
-		pr = 0;
-	}
-	
-	
 	if (!isHomed) {
 		last_desired_az = desired_az;
 		last_desired_dec = desired_dec;
@@ -494,7 +490,35 @@ void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s) {
 		last_desired_az = desired_az;
 		last_desired_dec = desired_dec;
 	}
+
+	// From here on only debug outputs happen
+#ifdef DEBUG
+#ifdef DEBUG_SERIAL
+	if (pr == -1 || pr >= 10) {
+		Serial.print("RA ");
+		Serial.print(rightAscension);
+		Serial.print(" and DEC ");
+		Serial.print(declination);
+		Serial.print(" to ALTAZ is: ALT ");
+		Serial.print(deg_altitude);
+		Serial.print("ฐ AZ ");
+		Serial.print(deg_azimuth);
+		Serial.print("ฐ; Steppers: az");
+		Serial.print(desired_az);
+		Serial.print("/dec ");
+		Serial.print(desired_dec);
+		Serial.print(" diff ");
+		Serial.print(last_reported_az - desired_az);
+		Serial.print(" / ");
+		Serial.println(last_reported_dec - desired_dec);
+
+		last_reported_az = desired_az;
+		last_reported_dec = desired_dec;
+		pr = 0;
+	}
 	pr++;
+#endif
+#endif
 }
 //#endif
 
