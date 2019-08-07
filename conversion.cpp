@@ -345,7 +345,7 @@ const long timeLast;
 #endif
 
 // TODO!!!!!
-// This needs to be adressed next. We need to create (e.g. copy) either a table containing
+// This needs to be addressed next. We need to create (e.g. copy) either a table containing
 // these values, or we need to calculate them
 float current_jul_magic_year = -731.5; // -731.5=1998 //6938.5=2019
 float current_jul_magic_mo = 212; // 212=August ?maybe. This is why we need lookup tables
