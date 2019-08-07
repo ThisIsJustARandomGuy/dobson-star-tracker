@@ -34,10 +34,10 @@
 // Uncomment the following line to enable sending debug statements via the serial port
 #define DEBUG_SERIAL
 
-// TIME_FACTOR
-// 1 means real-time. 2 means time passes twice as fast
+
+// Time multiplication factor. 1 means real-time. 2 means time passes twice as fast
 // Do NOT set to something ridiculously high if your motors are connected or rapid unplanned disassembly of setup may occur
-// Use this to test your setup
+// DO use this to test your setup, but start with sensible values like 1
 // Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual tims. We're actively working on that feature (PR #1)
 const short TIME_FACTOR = 1;
 
@@ -56,6 +56,7 @@ const short TIME_FACTOR = 1;
 /**
  * ----------------
  * GPS section
+ * This whole section is ignored, if GPS_FIXED_POS is enabled in the debug section above.
  * ----------------
  */
 #ifndef GPS_FIXED_POS

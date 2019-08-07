@@ -344,8 +344,11 @@ const long timeLast;
 // GPS CODE ensues
 #endif
 
-float current_jul_magic_year = -731.5; // 1998 //6938.5;// 2019
-float current_jul_magic_mo = 212; // August
+// TODO!!!!!
+// This needs to be adressed next. We need to create (e.g. copy) either a table containing
+// these values, or we need to calculate them
+float current_jul_magic_year = -731.5; // -731.5=1998 //6938.5=2019
+float current_jul_magic_mo = 212; // 212=August ?maybe. This is why we need lookup tables
 
 float deg2rad(float degs) {
 	return degs * pi / 180;
@@ -371,8 +374,8 @@ long last_reported_dec = 0;
 #endif // DEBUG_SERIAL
 #endif // DEBUG
 
-long last_desired_az = 0;
-long last_desired_dec = 0;
+long last_desired_az = 0;  // Last azimuth (IN STEPS) we desired
+long last_desired_dec = 0; // Last declination (IN STEPS) we desired
 
 long current_year = 1998;
 long current_month = 8;
