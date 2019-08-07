@@ -8,7 +8,7 @@
 #ifndef CONVERSION_H_
 #define CONVERSION_H_
 
-#define DEBUG false
+#define DEBUG true
 
 #include <AccelStepper.h>
 

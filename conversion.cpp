@@ -340,7 +340,7 @@ const long timeLast;
 const long LAT = 47.426430;
 const long LNG = 12.849180;
 // TIME MULTI FACTOR
-const short TIME_FACTOR = 1; // 1min per sec
+const short TIME_FACTOR = 10; // 1min per sec
 float start_lat = 52.5;
 float start_lng = -1.91666667;
 
@@ -349,8 +349,8 @@ float current_jul_magic_mo = 212; // August
 
 const int H_TIMEZONE_CORRECTION = 0;
 
-const long AZ_STEPS_PER_REV = 320000;
-const long DEC_STEPS_PER_REV = 3200000;
+const long AZ_STEPS_PER_REV = 32000;
+const long DEC_STEPS_PER_REV = 32000000;
 
 float deg2rad(float degs) {
 	return degs * pi / 180;
