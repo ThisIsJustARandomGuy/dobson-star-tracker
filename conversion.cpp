@@ -62,6 +62,7 @@ char receivedChars[numChars];
 
 boolean newData = false;
 boolean isHomed = false;
+boolean isPositiveDeclination = false;
 
 long desiredRaSecs, desiredDecSecs;
 
@@ -127,7 +128,7 @@ void AZ_to_EQ() {
 	decDEG = dec_deg;
 	decMM = (dec_deg - decDEG) * 60;
 	decSS = ((dec_deg - decDEG) * 60 - decMM) * 60;
-	sDEC_tel = 45;    // IT#S NEGATIVE also try sDEC_tel = 43;
+	sDEC_tel = isPositiveDeclination ? 43 : 45; // 45 IS NEGATIVE; also try sDEC_tel = 43;
 
 	sprintf(txAR, "%02d:%02d:%02d#", int(arHH), int(arMM), int(arSS));
 	sprintf(txDEC, "%c%02d%c%02d:%02d#", sDEC_tel, int(decDEG), 223, int(decMM),
@@ -154,7 +155,7 @@ void AZ_to_EQ() {
 			+ (decSS * stepsPerSec * 3600);
 
 }
-
+bool firstStart = false;
 void recvWithStartEndMarkers() {
 	static boolean recvInProgress = false;
 	static byte ndx = 0;
@@ -178,9 +179,7 @@ void recvWithStartEndMarkers() {
 				ndx = 0;
 				newData = true;
 			}
-		}
-
-		else if (rc == startMarker) {
+		} else if (rc == startMarker) {
 			recvInProgress = true;
 		}
 	}
@@ -188,6 +187,8 @@ void recvWithStartEndMarkers() {
 
 long desiredAz = 0;
 long desiredDec = 0;
+float last_ra_deg = ra_deg;
+float last_dec_deg = dec_deg;
 
 bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 	if (newData == true) {
@@ -217,11 +218,18 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 			Serial.println("Moving to: ");
 			Serial.println(ra_deg);
 			 Serial.println(dec_deg);*/
-			if (homingMode) {
-				isHomed = true;
-				return true; // We just did homing, tracking starts now
-			}
+
 			Serial.print("0");
+			if (homingMode) {
+				/*Serial.println("HOMING");
+				Serial.println(last_ra_deg);
+				Serial.println(ra_deg);
+				Serial.println(last_dec_deg);
+				 Serial.println(dec_deg);*/
+				isHomed = true;
+				newData = false;
+				return true;
+			}
 		}
 		if (receivedChars[0] == 'S') {
 			if (receivedChars[1] == 'r') {
@@ -236,6 +244,7 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 
 				//deg = hrs / 24 * 360 + mins / (24 * 60) + secs / (24 * 3600);
 				// This is our ultimate target value
+				last_ra_deg = ra_deg;
 				ra_deg = 360
 						* (hrs / 24. + mins / (24 * 60) + secs / (24 * 3600));
 
@@ -255,8 +264,11 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 				long secs = (receivedChars[10] - '0') * 10
 						+ (receivedChars[11] - '0');
 
+				last_dec_deg = dec_deg;
+
 				dec_deg = multi
 						* (deg + mins / 60. + secs / 3600.);
+				isPositiveDeclination = multi > 0;
 
 				Serial.print("1");
 			}
@@ -513,6 +525,10 @@ void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s) {
 		az_s.setCurrentPosition(desired_az);
 		el_s.setCurrentPosition(desired_alt);
 	} else {
+		/*Serial.println("Executing a move!");
+		Serial.println(last_desired_az);
+		Serial.println(desired_az);
+		 Serial.println(az_s.currentPosition());*/
 		az_s.move(last_desired_az - desired_az);
 		el_s.move(last_desired_dec - desired_alt);
 

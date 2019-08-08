@@ -56,6 +56,9 @@ void setup() {
 #ifdef ALT_ENABLE
 	digitalWrite(ALT_ENABLE_PIN, LOW); // Enable altitude stepper
 #endif
+	Serial.begin(9600);
+	delay(100);
+	Serial.print("16:41:41#");
 
 #ifdef DEBUG_SERIAL
 #ifdef AZ_ENABLE
@@ -71,7 +74,6 @@ void setup() {
 #endif
 #endif
 
-	Serial.begin(9600);
 
 }
 
