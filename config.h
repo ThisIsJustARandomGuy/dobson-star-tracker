@@ -5,20 +5,23 @@
  * Azimuth Stepper
  * This is the stepper that rotates the mount horizontally
  */
-#define X_ENABLE_PIN       38    // RAMPS 1.4
-#define X_STEP_PIN         54    // RAMPS 1.4
-#define X_DIR_PIN          55    // RAMPS 1.4
-#define X_STEPS_PER_REV 32000    // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope
+#define AZ_ENABLE_PIN       38    // RAMPS 1.4
+#define AZ_STEP_PIN         54    // RAMPS 1.4
+#define AZ_DIR_PIN          55    // RAMPS 1.4
+#define AZ_STEPS_PER_REV  32000    // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope
+#define AZ_MAX_ACCEL       200    // Maximum acceleration for the azimuth stepper
+#define AZ_MAX_SPEED      2000    // Maximum speed for the azimuth stepper
 
 /*
  * Altitude stepper
- * This is the stepper that rotates the telescope horizontally
+ * This is the stepper that rotates the telescope vertically
  */
-#define Y_ENABLE_PIN       56    // RAMPS 1.4
-#define Y_STEP_PIN         60    // RAMPS 1.4
-#define Y_DIR_PIN          61    // RAMPS 1.4
-#define Y_STEPS_PER_REV 32000    // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope
-
+#define ALT_ENABLE_PIN       56  // RAMPS 1.4
+#define ALT_STEP_PIN         60  // RAMPS 1.4
+#define ALT_DIR_PIN          61  // RAMPS 1.4
+#define ALT_STEPS_PER_REV 320000  // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope
+#define ALT_MAX_ACCEL      2000   // Maximum acceleration for the altitude stepper
+#define ALT_MAX_SPEED     20000   // Maximum speed for the altitude stepper
 
 /**
  * ----------------
@@ -29,16 +32,30 @@
  */
 
 // Uncomment the following line to enable various debug features that would otherwise not get compiled into the firmware
-#define DEBUG
+//#define DEBUG
 
 // Uncomment the following line to enable sending debug statements via the serial port
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 
+// Uncomment the following line to disable the stepper drivers
+#define DEBUG_DISABLE_ALL_STEPPERS
+//#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor
+//#define DEBUG_DISABLE_ALTITUDE_STEPPER // Uncomment this to disable only the altitude stepper
+
+// Please only modify this if you know what you are doing
+#if !defined DEBUG || !(defined DEBUG_DISABLE_ALL_STEPPERS || defined DEBUG_DISABLE_AZIMUTH_STEPPER)
+#define AZ_ENABLE
+#endif
+
+#if !defined DEBUG || !(defined DEBUG_DISABLE_ALL_STEPPERS || defined DEBUG_DISABLE_ALTITUDE_STEPPER)
+#define ALT_ENABLE
+#endif
+// Continue modifying
 
 // Time multiplication factor. 1 means real-time. 2 means time passes twice as fast
 // Do NOT set to something ridiculously high if your motors are connected or rapid unplanned disassembly of setup may occur
 // DO use this to test your setup, but start with sensible values like 1
-// Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual tims. We're actively working on that feature (PR #1)
+// Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual time. We're actively working on that feature (PR #1)
 const short TIME_FACTOR = 1;
 
 // For a successful build you have to either

@@ -26,6 +26,17 @@ int poleH_HH = 89;
 int poleH_MM = 20;
 int poleH_SS = 50;
 
+// DESIRED COORDINATES. THIS IS IMPORTANT
+float ra_h = 16;
+float ra_m = 41.7;
+float ra_deg = (ra_h + ra_m / 60) * 15;
+
+float dec_d = 36;
+float dec_m = 28;
+float dec_deg = dec_d + dec_m / 60;
+
+
+
 unsigned long seg_sideral = 1003;
 const double pi = 3.14159265358979324;
 volatile int lastEncoded1 = 0;
@@ -66,7 +77,7 @@ void initConversion() {
 		TSL = TSL - 86400;
 }
 
-void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
+void AZ_to_EQ() {
 	double delta_tel, sin_h, cos_h, sin_A, cos_A, sin_DEC, cos_DEC;
 	double H_telRAD, h_telRAD, A_telRAD;
 	long H_tel;
@@ -74,7 +85,7 @@ void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	long decDEG, decMM, decSS;
 	char sDEC_tel;
 
-	A_telRAD = (Az_tel_s / 3600.0) * pi / 180.0;
+	/*A_telRAD = (Az_tel_s / 3600.0) * pi / 180.0;
 	h_telRAD = (Alt_tel_s / 3600.0) * pi / 180.0;
 	sin_h = sin(h_telRAD);
 	cos_h = cos(h_telRAD);
@@ -105,25 +116,36 @@ void AZ_to_EQ(AccelStepper &az, AccelStepper &el) {
 	}
 	while (AR_tel_s >= 86400) {
 		AR_tel_s = AR_tel_s - 86400;
-	}
+	 }*/
 
-	if (!isHomed) {
-		az.setCurrentPosition(map(AR_tel_s, 0, 86400, 0, 3200));
-		el.setCurrentPosition(map(DEC_tel_s, 0, 324000, 0, 3200));
-		isHomed = true;
-	}
+	float percent_day = ra_deg / 360;
 
-	arHH = AR_tel_s / 3600;
-	arMM = (AR_tel_s - arHH * 3600) / 60;
-	arSS = (AR_tel_s - arHH * 3600) - arMM * 60;
-	decDEG = abs(DEC_tel_s) / 3600;
-	decMM = (abs(DEC_tel_s) - decDEG * 3600) / 60;
-	decSS = (abs(DEC_tel_s) - decDEG * 3600) - decMM * 60;
-	(DEC_tel_s < 0) ? sDEC_tel = 45 : sDEC_tel = 43;
+	arHH = percent_day * 24;
+	arMM = (percent_day * 24 - arHH) * 60;
+	arSS = ((percent_day * 24 - arHH) * 60 - arMM) * 60;
+
+	decDEG = dec_deg;
+	decMM = (dec_deg - decDEG) * 60;
+	decSS = ((dec_deg - decDEG) * 60 - decMM) * 60;
+	sDEC_tel = 45;    // IT#S NEGATIVE also try sDEC_tel = 43;
 
 	sprintf(txAR, "%02d:%02d:%02d#", int(arHH), int(arMM), int(arSS));
 	sprintf(txDEC, "%c%02d%c%02d:%02d#", sDEC_tel, int(decDEG), 223, int(decMM),
 			int(decSS));
+
+#if defined DEBUG && defined DEBUG_SERIAL
+
+	Serial.println(dec_deg);
+	Serial.println(decDEG);
+	Serial.println(decMM);
+	Serial.println(decSS);
+
+	Serial.println(sDEC_tel);
+
+	Serial.println("DONE");
+	Serial.println(txAR);
+	Serial.println(txDEC);
+#endif
 
 	const float stepsPerSec = (3200 / (24 * 60 * 60));
 	const long azPosition = arSS * stepsPerSec + (arMM * stepsPerSec * 60)
@@ -167,7 +189,7 @@ void recvWithStartEndMarkers() {
 long desiredAz = 0;
 long desiredDec = 0;
 
-void showNewData(AccelStepper &az, AccelStepper &el) {
+bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			Serial.print(txAR);
@@ -177,24 +199,29 @@ void showNewData(AccelStepper &az, AccelStepper &el) {
 		}
 		if (receivedChars[0] == 'Q') {
 			// Stop moving
-			az.moveTo(az.currentPosition());
-			el.moveTo(el.currentPosition());
+			az.stop();
+			el.stop();
 		}
 		if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// Start moving
-			az.moveTo(map(desiredRaSecs, 0, 86400, 0, 3200));
+			//az.moveTo(map(desiredRaSecs, 0, 86400, 0, 3200));
 				/*map(abs(abs(desiredRaSecs) - abs(AR_tel_s)), 0, 86400, 0,
 				 3200));*/
-			el.moveTo(map(desiredDecSecs, -324000, 324000, 0, 32000));
+			//el.moveTo(map(desiredDecSecs, -324000, 324000, 0, 32000));
 						/*map(abs(abs(desiredDecSecs) - abs(DEC_tel_s)), 0, 324000, 0,
-						 3200));*/
-			Serial.print("0");
+			 3200));
+
 			Serial.println("Moving from: ");
-			Serial.println(AR_tel_s);
-			Serial.println(DEC_tel_s);
+			Serial.println(last_desired_az);
+			Serial.println(last_desired_dec);
 			Serial.println("Moving to: ");
-			Serial.println(desiredRaSecs);
-			Serial.println(desiredDecSecs);
+			Serial.println(ra_deg);
+			 Serial.println(dec_deg);*/
+			if (homingMode) {
+				isHomed = true;
+				return true; // We just did homing, tracking starts now
+			}
+			Serial.print("0");
 		}
 		if (receivedChars[0] == 'S') {
 			if (receivedChars[1] == 'r') {
@@ -207,11 +234,12 @@ void showNewData(AccelStepper &az, AccelStepper &el) {
 				long secs = (receivedChars[9] - '0') * 10
 						+ (receivedChars[10] - '0');
 
-				desiredRaSecs = hrs * 3600 + mins * 60 + secs;
+				//deg = hrs / 24 * 360 + mins / (24 * 60) + secs / (24 * 3600);
+				// This is our ultimate target value
+				ra_deg = 360
+						* (hrs / 24. + mins / (24 * 60) + secs / (24 * 3600));
 
-				float raDeg = 360 * ((desiredRaSecs / 86400));
-
-				desiredAz = map(raDeg, 0, 86400, 0, 3200);
+				//desiredAz = map(raDeg, 0, 86400, 0, 3200);
 				Serial.print("1");
 			}
 			if (receivedChars[1] == 'd') {
@@ -219,8 +247,7 @@ void showNewData(AccelStepper &az, AccelStepper &el) {
 
 				long multi = (receivedChars[3] == '+') ? 1 : -1;
 
-				long deg = multi
-						* ((receivedChars[4] - '0') * 10
+				long deg = ((receivedChars[4] - '0') * 10
 								+ (receivedChars[5] - '0'));
 
 				long mins = (receivedChars[7] - '0') * 10
@@ -228,34 +255,21 @@ void showNewData(AccelStepper &az, AccelStepper &el) {
 				long secs = (receivedChars[10] - '0') * 10
 						+ (receivedChars[11] - '0');
 
-				/*
-				 * 	decDEG = abs(DEC_tel_s) / 3600;
-				 *	decMM = (abs(DEC_tel_s) - decDEG * 3600) / 60;
-				 *
-				 *
-				 *
-				 *	decSS = (abs(DEC_tel_s) - decDEG * 3600) - decMM * 60;
-				 *	decSS + decMM * 60 = DEC_tel_s - decDEG * 3600
-				 *	decSS + decMM * 60 + decDEG * 3600 = DEC_tel_s
-				 *
-				 */
+				dec_deg = multi
+						* (deg + mins / 60. + secs / 3600.);
 
-				desiredDecSecs = deg * 3600 + mins * 60 + secs;
-
-				float decDeg = 360 * ((abs(desiredRaSecs) / 86400));
-
-				desiredDec = map(decDeg, 0, 360, 0, 3200);
 				Serial.print("1");
 			}
 		}
 		newData = false;
 	}
+	return false;
 }
 
-void communication(AccelStepper &az, AccelStepper &el) {
+bool communication(AccelStepper &az, AccelStepper &el, bool homingMode) {
 
 	recvWithStartEndMarkers();
-	showNewData(az, el);
+	return showNewData(az, el, homingMode);
 	/*int i = 0;
 	input[i++] = Serial.read();
 	delay(5);
@@ -277,12 +291,8 @@ void communication(AccelStepper &az, AccelStepper &el) {
 void read_sensors(AccelStepper &az, AccelStepper &el) {
 	long h_deg, h_min, h_seg, A_deg, A_min, A_seg;
 
-	/*Serial.print("Values are (az, el): ");
-	Serial.print(encoderValue1);
-	Serial.print(", ");
-	 Serial.println(encoderValue2);*/
-	encoderValue1 = az.currentPosition() % pulses_enc1;
-	encoderValue2 = el.currentPosition() % pulses_enc2;
+	encoderValue1 = az.currentPosition() % AZ_STEPS_PER_REV;
+	encoderValue2 = el.currentPosition() % ALT_STEPS_PER_REV;
 
 	int enc1 = encoderValue1 / 1500;
 	long encoder1_temp = encoderValue1 - (enc1 * 1500);
@@ -298,6 +308,15 @@ void read_sensors(AccelStepper &az, AccelStepper &el) {
 		Az_tel_s = 1296000 + Az_tel_s;
 	if (Az_tel_s >= 1296000)
 		Az_tel_s = Az_tel_s - 1296000;
+
+	Serial.print("Values are (az, el): ");
+	Serial.print(encoderValue1);
+	Serial.print(", ");
+	Serial.print(encoderValue2);
+	Serial.print("; alt/az: ");
+	Serial.print(Alt_tel_s);
+	Serial.print(", ");
+	Serial.println(Az_tel_s);
 }
 
 void loopConversion() {
@@ -344,11 +363,6 @@ const long timeLast;
 // GPS CODE ensues
 #endif
 
-// TODO!!!!!
-// This needs to be addressed next. We need to create (e.g. copy) either a table containing
-// these values, or we need to calculate them
-float current_jul_magic_year = -731.5; // -731.5=1998 //6938.5=2019
-float current_jul_magic_mo = 212; // 212=August ?maybe. This is why we need lookup tables
 
 float deg2rad(float degs) {
 	return degs * pi / 180;
@@ -377,19 +391,30 @@ long last_reported_dec = 0;
 long last_desired_az = 0;  // Last azimuth (IN STEPS) we desired
 long last_desired_dec = 0; // Last declination (IN STEPS) we desired
 
-long current_year = 1998;
-long current_month = 8;
 
-void EQ_to_AZ(float rightAscension, float declination, AccelStepper &az_s, AccelStepper &el_s) {
+
+long current_year = 2019;
+long current_month = 8;
+// TODO!!!!!
+// This needs to be addressed next. We need to create (e.g. copy) either a table containing
+// these values, or we need to calculate them
+float current_jul_magic_year = 6938.5; // -731.5=1998 //6938.5=2019
+float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tables
+
+
+/**
+ * This function converts from right ascension + declination to azimuth and altitude.
+ */
+void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s) {
 	// KEEP TIME
 	// TODO Month rollover etc
 	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
 
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
 
-	long current_day = 10;
-	long current_hour = 23;
-	long current_minute = 10;
+	long current_day = 8;
+	long current_hour = 20;
+	long current_minute = 50;
 	long current_second = 00 + passed_seconds;
 
 	// Second, Minute and Hour rollover
@@ -435,14 +460,14 @@ void EQ_to_AZ(float rightAscension, float declination, AccelStepper &az_s, Accel
 	}
 
 	// The hour angle is the difference between the local siderian time and the right ascension in degrees of our target object...
-	float hour_angle = local_siderian_time - rightAscension;
+	float hour_angle = local_siderian_time - ra_deg;
 	// ...but we need to ensure that it's greater than 0
 	while (hour_angle < 0) {
 		hour_angle += 360.0;
 	}
 
 	// Convert various values from degrees to radians since the trigonometry functions work with radians
-	const float rad_declination = deg2rad(declination);
+	const float rad_declination = deg2rad(dec_deg);
 	const float rad_current_lat = deg2rad(current_lat); // TODO this can be a constant if GPS_FIXED_POS is set
 	const float rad_hour_angle = deg2rad(hour_angle);
 
@@ -477,21 +502,22 @@ void EQ_to_AZ(float rightAscension, float declination, AccelStepper &az_s, Accel
 	}
 
 	// TODO Is this really necessary to have it this complex? No
-	const long desired_az = (long) round((deg_azimuth / 360) * X_STEPS_PER_REV);
-	const long desired_dec = (long) round((deg_altitude / 360) * Y_STEPS_PER_REV);
+	const long desired_az = (long) round(
+			(deg_azimuth / 360) * AZ_STEPS_PER_REV);
+	const long desired_alt = (long) round(
+			(deg_altitude / 360) * ALT_STEPS_PER_REV);
 
 	if (!isHomed) {
 		last_desired_az = desired_az;
-		last_desired_dec = desired_dec;
+		last_desired_dec = desired_alt;
 		az_s.setCurrentPosition(desired_az);
-		el_s.setCurrentPosition(desired_dec);
-		isHomed = true;
+		el_s.setCurrentPosition(desired_alt);
 	} else {
 		az_s.move(last_desired_az - desired_az);
-		el_s.move(last_desired_dec - desired_dec);
+		el_s.move(last_desired_dec - desired_alt);
 
 		last_desired_az = desired_az;
-		last_desired_dec = desired_dec;
+		last_desired_dec = desired_alt;
 	}
 
 	// From here on only debug outputs happen
@@ -499,9 +525,9 @@ void EQ_to_AZ(float rightAscension, float declination, AccelStepper &az_s, Accel
 #ifdef DEBUG_SERIAL
 	if (pr == -1 || pr >= 10) {
 		Serial.print("RA ");
-		Serial.print(rightAscension);
+		Serial.print(ra_deg);
 		Serial.print(" and DEC ");
-		Serial.print(declination);
+		Serial.print(dec_deg);
 		Serial.print(" to ALTAZ is: ALT ");
 		Serial.print(deg_altitude);
 		Serial.print("° AZ ");
@@ -509,14 +535,14 @@ void EQ_to_AZ(float rightAscension, float declination, AccelStepper &az_s, Accel
 		Serial.print("°; Steppers: az");
 		Serial.print(desired_az);
 		Serial.print("/dec ");
-		Serial.print(desired_dec);
+		Serial.print(desired_alt);
 		Serial.print(" diff ");
 		Serial.print(last_reported_az - desired_az);
 		Serial.print(" / ");
-		Serial.println(last_reported_dec - desired_dec);
+		Serial.println(last_reported_dec - desired_alt);
 
 		last_reported_az = desired_az;
-		last_reported_dec = desired_dec;
+		last_reported_dec = desired_alt;
 		pr = 0;
 	}
 	pr++;

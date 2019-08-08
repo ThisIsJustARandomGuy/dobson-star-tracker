@@ -9,20 +9,20 @@
 #include "./conversion.h"
 
 
-AccelStepper azimuth(AccelStepper::DRIVER, X_STEP_PIN, X_DIR_PIN);
-AccelStepper elevation(AccelStepper::DRIVER, Y_STEP_PIN, Y_DIR_PIN);
+AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN);
+AccelStepper elevation(AccelStepper::DRIVER, ALT_STEP_PIN, ALT_DIR_PIN);
+
+#define OPMODE_INITIALIZING 0
+#define OPMODE_HOMING 1
+#define OPMODE_TRACKING 2
+
+byte operating_mode = OPMODE_INITIALIZING;
 
 //MultiStepper axes;
 
 Moon dummyMoon;
 
-float ra_h = 16;
-float ra_m = 41.7;
-float ra_deg = (ra_h + ra_m / 60) * 15;
 
-float dec_d = 36;
-float dec_m = 28;
-float dec_deg = dec_d + dec_m / 60;
 
 float start_y = 2019;
 float start_mo = 8;
@@ -34,35 +34,45 @@ float start_s = 00;
 
 
 void setup() {
-	Serial.begin(9600);
 
 	//initConversion();
 
-	// Enable azimuth
-	pinMode(X_ENABLE_PIN, OUTPUT);
-	digitalWrite(X_ENABLE_PIN, LOW); // Enable
+	pinMode(AZ_ENABLE_PIN, OUTPUT);  // Azimuth pin
+	pinMode(ALT_ENABLE_PIN, OUTPUT); // Altitude pin
 
-	// Enable elevation
-	pinMode(Y_ENABLE_PIN, OUTPUT);
-	digitalWrite(Y_ENABLE_PIN, LOW);
-
-	azimuth.setMaxSpeed(300);
-	azimuth.setAcceleration(100);
+	azimuth.setMaxSpeed(AZ_MAX_SPEED);
+	azimuth.setAcceleration(AZ_MAX_ACCEL);
 
 	elevation.setMaxSpeed(30000);
 	elevation.setAcceleration(500);
 
-	Serial.println(ra_deg);
-	Serial.println(dec_deg);
-	//Timer1.initialize(100);
-	//Timer1.attachInterrupt(stepperMove);
+	// Set the telescope to homing mode (see above for what it does)
+	operating_mode = OPMODE_HOMING;
 
-	// Add steppers to mutlistepper
-	//axes.addStepper(azimuth);
-	//axes.addStepper(elevation);
+	// Check for debug constants and enable the stepper drivers
+#ifdef AZ_ENABLE
+	digitalWrite(AZ_ENABLE_PIN, LOW); // Enable azimuth stepper
+#endif
+#ifdef ALT_ENABLE
+	digitalWrite(ALT_ENABLE_PIN, LOW); // Enable altitude stepper
+#endif
 
-	/*azimuth.moveTo(12000);
-	 elevation.moveTo(6400);*/
+#ifdef DEBUG_SERIAL
+#ifdef AZ_ENABLE
+	Serial.println("DBG Az  ON");
+#else
+	Serial.println("DBG Az  OFF");
+#endif
+
+#ifdef ALT_ENABLE
+	Serial.println("DBG Alt ON");
+#else
+	Serial.println("DBG Alt OFF");
+#endif
+#endif
+
+	Serial.begin(9600);
+
 }
 
 int calc = -1;
@@ -72,56 +82,29 @@ void loop() {
 	azimuth.run();
 	elevation.run();
 
-//	loopConversion();
-//	read_sensors(azimuth, elevation);
+	//loopConversion();
+	//read_sensors(azimuth, elevation);
 
-	if (calc >= 10000 || calc == -1 || Serial.available() > 0) {
-		//azimuth.setCurrentPosition(random(0, 3200));
-		//elevation.setCurrentPosition(random(0, 6400));
-
-		//AZ_to_EQ(azimuth, elevation);
+	if (calc >= 100 || calc == -1 || Serial.available() > 0) {
+#if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
-		EQ_to_AZ(ra_deg, dec_deg, azimuth, elevation);
+#endif
+		AZ_to_EQ();
+		EQ_to_AZ(azimuth, elevation);
+
+#if defined DEBUG && defined DEBUG_SERIAL
 		long calc_time = micros() - millis_start;
-		if (false && DEBUG == true) {
-			Serial.print("Calc took ");
+		/*Serial.print("Calc took ");
 			Serial.print(calc_time / 1000.);
-			Serial.println("ms");
-		}
-		//Serial.println(azimuth.targetPosition());
-		
-		//Serial.println("done...");
+		 Serial.println("ms");*/
+#endif
 		calc = 0;
 	}
 
-	/*if (Serial.available() > 0)
-	 communication(azimuth, elevation);*/
+if (Serial.available() > 0) {
+	if (communication(azimuth, elevation, operating_mode == OPMODE_HOMING))
+		operating_mode = OPMODE_TRACKING;
+}
 
 	calc++;
-
-	/*long positions[2]; // 0 = azimuth; 1 = elevation
-
-	positions[0] = 5000;
-	positions[1] = dummyMoon.getElevation();
-	axes.moveTo(positions);
-	axes.runSpeedToPosition();
-	delay(1000);
-
-	positions[0] = -azimuth.currentPosition();
-	positions[1] = -elevation.currentPosition();
-	axes.moveTo(positions);
-	axes.runSpeedToPosition();
-	delay(1000);
-
-	if(azimuth.distanceToGo() == 0 && elevation.distanceToGo() == 0) {
-		delay(1000);
-	}*/
-	// If at the end of travel go to the other end
-	/*if (azimuth.distanceToGo() == 0) {
-		azimuth.moveTo(-azimuth.currentPosition());
-	}
-
-	if (elevation.distanceToGo() == 0) {
-		elevation.moveTo(-elevation.currentPosition());
-	 }*/
 }

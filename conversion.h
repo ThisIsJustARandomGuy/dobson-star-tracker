@@ -15,15 +15,15 @@
 
 void initConversion();
 void loopConversion();
-void AZ_to_EQ(AccelStepper &az, AccelStepper &el);
-void showNewData(AccelStepper &az, AccelStepper &el);
+void AZ_to_EQ();
+bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode);
 void recvWithStartEndMarkers();
-void communication(AccelStepper &az, AccelStepper &el);
+bool communication(AccelStepper &az, AccelStepper &el, bool homingMode);
 void read_sensors(AccelStepper &az, AccelStepper &el);
 
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-void EQ_to_AZ(float ra, float dec, AccelStepper &az_s, AccelStepper &el_s);
+void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s);
 
 #endif /* CONVERSION_H_ */
