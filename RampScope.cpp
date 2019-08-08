@@ -87,7 +87,14 @@ void loop() {
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
 
-	if (calc >= 100 || calc == -1 || Serial.available() > 0) {
+	if (calc >= 10000 || calc == -1) {
+
+		if (Serial.available() > 0) {
+			if (communication(azimuth, elevation,
+					operating_mode == OPMODE_HOMING))
+				operating_mode = OPMODE_TRACKING;
+		}
+
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
@@ -103,10 +110,6 @@ void loop() {
 		calc = 0;
 	}
 
-if (Serial.available() > 0) {
-	if (communication(azimuth, elevation, operating_mode == OPMODE_HOMING))
-		operating_mode = OPMODE_TRACKING;
-}
 
 	calc++;
 }

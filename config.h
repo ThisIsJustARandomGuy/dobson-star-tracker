@@ -38,7 +38,7 @@
 //#define DEBUG_SERIAL
 
 // Uncomment the following line to disable the stepper drivers
-#define DEBUG_DISABLE_ALL_STEPPERS
+//#define DEBUG_DISABLE_ALL_STEPPERS
 //#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor
 //#define DEBUG_DISABLE_ALTITUDE_STEPPER // Uncomment this to disable only the altitude stepper
 
@@ -56,7 +56,7 @@
 // Do NOT set to something ridiculously high if your motors are connected or rapid unplanned disassembly of setup may occur
 // DO use this to test your setup, but start with sensible values like 1
 // Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual time. We're actively working on that feature (PR #1)
-const short TIME_FACTOR = 1;
+const short TIME_FACTOR = 100;
 
 // For a successful build you have to either
 // 1) uncomment this and set the LAT and LNG in the next lines or
