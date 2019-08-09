@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <AccelStepper.h>
 #include <TimerOne.h>
-//#include <MultiStepper.h>
+#include <MultiStepper.h>
 
 #include "./config.h"
 #include "./Moon.h"
@@ -18,7 +18,7 @@ AccelStepper elevation(AccelStepper::DRIVER, ALT_STEP_PIN, ALT_DIR_PIN);
 
 byte operating_mode = OPMODE_INITIALIZING;
 
-//MultiStepper axes;
+MultiStepper axes;
 
 Moon dummyMoon;
 
@@ -44,6 +44,9 @@ void setupSteppers() {
 
 	elevation.setMaxSpeed(30000);
 	elevation.setAcceleration(500);
+
+	axes.addStepper(azimuth);
+	axes.addStepper(elevation);
 
 	// Check for debug constants and enable the stepper drivers
 #ifdef AZ_ENABLE
@@ -83,26 +86,26 @@ void setup() {
 }
 
 
-int calc = -1;
+unsigned int calc = 0;
 
 void loop() {
 
-	azimuth.run();
-	elevation.run();
+	axes.run();
 
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
 
-	if (Serial.available() > 0) {
-		if (communication(azimuth, elevation, operating_mode == OPMODE_HOMING))
-			operating_mode = OPMODE_TRACKING;
-	}
+	if (calc >= 5000 || calc == 0) {
+		if (Serial.available() > 0) {
+			if (communication(axes, operating_mode == OPMODE_HOMING))
+				operating_mode = OPMODE_TRACKING;
+		}
 
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
 		//AZ_to_EQ();
-		EQ_to_AZ(azimuth, elevation);
+		EQ_to_AZ(axes, azimuth, elevation);
 
 #if defined DEBUG && defined DEBUG_SERIAL
 		long calc_time = micros() - millis_start;
@@ -110,8 +113,8 @@ void loop() {
 			Serial.print(calc_time / 1000.);
 		 Serial.println("ms");*/
 #endif
-	//calc = 0;
+		calc = 0;
+	}
 
-
-	//calc++;
+	calc++;
 }

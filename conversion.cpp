@@ -188,7 +188,9 @@ void recvWithStartEndMarkers() {
 float last_ra_deg = ra_deg;
 float last_dec_deg = dec_deg;
 
-bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
+long positions[2];
+
+bool showNewData(MultiStepper &motors, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			Serial.print(txAR);
@@ -196,8 +198,7 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 			Serial.print(txDEC);
 		} else if (receivedChars[0] == 'Q') {
 			// Stop moving
-			az.stop();
-			el.stop();
+
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// Start moving
 			//az.moveTo(map(desiredRaSecs, 0, 86400, 0, 3200));
@@ -224,6 +225,8 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 				isHomed = true;
 				newData = false;
 				return true;
+			} else {
+				motors.moveTo(positions);
 			}
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'r') {
 			// Set target RA
@@ -242,6 +245,7 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 					* (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
 
 			//desiredAz = map(raDeg, 0, 86400, 0, 3200);
+			positions[0] = ra_deg / 360 * AZ_STEPS_PER_REV;
 			Serial.print("1");
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target DEC
@@ -263,6 +267,7 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 
 			dec_deg = multi * (deg + mins / 60. + secs / 3600.);
 			isPositiveDeclination = multi > 0;
+			positions[1] = dec_deg / 360 * ALT_STEPS_PER_REV;
 
 			Serial.print("1");
 		} else {
@@ -274,10 +279,10 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 	return false;
 }
 
-bool communication(AccelStepper &az, AccelStepper &el, bool homingMode) {
+bool communication(MultiStepper &motors, bool homingMode) {
 
 	recvWithStartEndMarkers();
-	return showNewData(az, el, homingMode);
+	return showNewData(motors, homingMode);
 	/*int i = 0;
 	input[i++] = Serial.read();
 	delay(5);
@@ -413,7 +418,7 @@ float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tabl
 /**
  * This function converts from right ascension + declination to azimuth and altitude.
  */
-void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s) {
+void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s) {
 	// KEEP TIME
 	// TODO Month rollover etc
 	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
@@ -518,6 +523,9 @@ void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s) {
 	if (!isHomed) {
 		last_desired_az = desired_az;
 		last_desired_dec = desired_alt;
+		//az_s.moveTo(desired_az);
+		//el_s.moveTo(desired_alt);
+		// Immediately track
 		az_s.setCurrentPosition(desired_az);
 		el_s.setCurrentPosition(desired_alt);
 	} else {
@@ -525,8 +533,9 @@ void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s) {
 		Serial.println(last_desired_az);
 		Serial.println(desired_az);
 		 Serial.println(az_s.currentPosition());*/
-		az_s.move(last_desired_az - desired_az);
-		el_s.move(last_desired_dec - desired_alt);
+		positions[0] = desired_az;
+		positions[1] = desired_alt;
+		motors.moveTo(positions);
 
 		last_desired_az = desired_az;
 		last_desired_dec = desired_alt;

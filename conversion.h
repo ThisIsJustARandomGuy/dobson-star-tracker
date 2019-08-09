@@ -11,19 +11,20 @@
 #define DEBUG true
 
 #include <AccelStepper.h>
+#include <MultiStepper.h>
 
 
 void initConversion();
 void loopConversion();
 void AZ_to_EQ();
-bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode);
+bool showNewData(MultiStepper &motors, bool homingMode);
 void recvWithStartEndMarkers();
-bool communication(AccelStepper &az, AccelStepper &el, bool homingMode);
+bool communication(MultiStepper &motors, bool homingMode);
 void read_sensors(AccelStepper &az, AccelStepper &el);
 
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-void EQ_to_AZ(AccelStepper &az_s, AccelStepper &el_s);
+void EQ_to_AZ(MultiStepper &motors, AccelStepper &az, AccelStepper &el);
 
 #endif /* CONVERSION_H_ */
