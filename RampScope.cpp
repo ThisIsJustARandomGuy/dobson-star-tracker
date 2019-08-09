@@ -92,22 +92,20 @@ unsigned int calc = 0;
 
 void loop() {
 
-	axes.run();
-
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
+	bool justHomed = communication(axes, operating_mode == OPMODE_HOMING);
+	if (justHomed)
+		operating_mode = OPMODE_TRACKING;
 
-	if (calc >= 5000 || calc == 0) {
-		if (Serial.available() > 0) {
-			if (communication(axes, operating_mode == OPMODE_HOMING))
-				operating_mode = OPMODE_TRACKING;
-		}
 
+	if (calc >= 100000 || calc == 0) {
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
 		//AZ_to_EQ();
-		EQ_to_AZ(axes, azimuth, elevation);
+		delay(1000);
+		EQ_to_AZ(axes, azimuth, elevation, justHomed);
 
 #if defined DEBUG && defined DEBUG_SERIAL
 		long calc_time = micros() - millis_start;
@@ -119,4 +117,6 @@ void loop() {
 	}
 
 	calc++;
+
+	axes.runSpeedToPosition();
 }

@@ -154,12 +154,14 @@ void AZ_to_EQ() {
 
 }
 
-bool newData = false;
-static boolean recvInProgress = false;
-static byte ndx = 0;
-const char startMarker = ':';
-const char endMarker = '#';
-void recvWithStartEndMarkers() {
+bool newData = false; // Gets set to true whenever a complete command is buffered
+static boolean recvInProgress = false; // True while a command is being received
+static byte ndx = 0; // Number of command character received
+const char startMarker = ':'; // Commands begin with this character
+const char endMarker = '#'; // Commands end with this character
+
+
+void receiveCommandChar() {
 
 	char rc;
 
@@ -190,7 +192,10 @@ float last_dec_deg = dec_deg;
 
 long positions[2];
 
-bool showNewData(MultiStepper &motors, bool homingMode) {
+/**
+ * This gets called whenever
+ */
+bool parseCommands(MultiStepper &motors, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			Serial.print(txAR);
@@ -200,63 +205,54 @@ bool showNewData(MultiStepper &motors, bool homingMode) {
 			// Stop moving
 
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
-			// Start moving
-			//az.moveTo(map(desiredRaSecs, 0, 86400, 0, 3200));
-				/*map(abs(abs(desiredRaSecs) - abs(AR_tel_s)), 0, 86400, 0,
-				 3200));*/
-			//el.moveTo(map(desiredDecSecs, -324000, 324000, 0, 32000));
-						/*map(abs(abs(desiredDecSecs) - abs(DEC_tel_s)), 0, 324000, 0,
-			 3200));
-
-			Serial.println("Moving from: ");
-			Serial.println(last_desired_az);
-			Serial.println(last_desired_dec);
-			Serial.println("Moving to: ");
-			Serial.println(ra_deg);
-			 Serial.println(dec_deg);*/
-
+			// Move Start
 			Serial.print("0");
+
+			// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
+			// If homing mode is true we set isHomed to true
+			// and return true to indicate to the loop() function that homing is complete.
 			if (homingMode) {
-				/*Serial.println("HOMING");
-				Serial.println(last_ra_deg);
-				Serial.println(ra_deg);
-				Serial.println(last_dec_deg);
-				 Serial.println(dec_deg);*/
 				isHomed = true;
 				newData = false;
 				return true;
 			} else {
-				motors.moveTo(positions);
+				// Otherwise send a move command to the motors.
+				// This will move both motors such that they end their moves at the same time
+				// motors.moveTo(positions);
 			}
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'r') {
-			// Set target RA
-			long hrs = (receivedChars[3] - '0') * 10 + (receivedChars[4] - '0');
-			long mins = (receivedChars[6] - '0') * 10
+			// Set Right Ascension (in hours, minutes and seconds)
+
+			// Parse the coordinates part of the command to integers
+			int hrs = (receivedChars[3] - '0') * 10 + (receivedChars[4] - '0');
+			int mins = (receivedChars[6] - '0') * 10
 					+ (receivedChars[7] - '0');
-			long secs = (receivedChars[9] - '0') * 10
+			int secs = (receivedChars[9] - '0') * 10
 					+ (receivedChars[10] - '0');
 
+			// This is what we return to Stellarium when it asks for the current right ascension
 			sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
 
-			//deg = hrs / 24 * 360 + mins / (24 * 60) + secs / (24 * 3600);
 			// This is our ultimate target value
 			last_ra_deg = ra_deg;
 			ra_deg = 360.
 					* (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
 
-			//desiredAz = map(raDeg, 0, 86400, 0, 3200);
-			positions[0] = ra_deg / 360 * AZ_STEPS_PER_REV;
+			// Set the desired ascension stepper motor position
+			// TODO this is very likely wrong. We need to convert this to altaz
+			//positions[0] = ra_deg / 360 * AZ_STEPS_PER_REV;
+
 			Serial.print("1");
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target DEC
 
-			long multi = (receivedChars[3] == '+') ? 1 : -1;
+			int multi = (receivedChars[3] == '+') ? 1 : -1; // TODO bool may be more memory efficient
 
-			long deg =
-					((receivedChars[4] - '0') * 10 + (receivedChars[5] - '0'));
+			int deg = ((receivedChars[4] - '0') * 10 + (receivedChars[5] - '0'));
 
 			long mins = (receivedChars[7] - '0') * 10
 					+ (receivedChars[8] - '0');
+			
 			long secs = (receivedChars[10] - '0') * 10
 					+ (receivedChars[11] - '0');
 
@@ -267,7 +263,10 @@ bool showNewData(MultiStepper &motors, bool homingMode) {
 
 			dec_deg = multi * (deg + mins / 60. + secs / 3600.);
 			isPositiveDeclination = multi > 0;
-			positions[1] = dec_deg / 360 * ALT_STEPS_PER_REV;
+
+			// Set the desired altitude stepper motor position
+			// TODO this is very likely wrong. We need to convert this to altaz
+			//positions[1] = dec_deg / 360 * ALT_STEPS_PER_REV;
 
 			Serial.print("1");
 		} else {
@@ -279,28 +278,13 @@ bool showNewData(MultiStepper &motors, bool homingMode) {
 	return false;
 }
 
+// Returns true if homing is completed
 bool communication(MultiStepper &motors, bool homingMode) {
-
-	recvWithStartEndMarkers();
-	return showNewData(motors, homingMode);
-	/*int i = 0;
-	input[i++] = Serial.read();
-	delay(5);
-	while ((input[i++] = Serial.read()) != '#') {
-		delay(5);
-	}
-	input[i] = '\0';
-
-	if (input[1] == ':' && input[2] == 'G' && input[3] == 'R'
-			&& input[4] == '#') {
-		Serial.print(txAR);
-	}
-
-	if (input[1] == ':' && input[2] == 'G' && input[3] == 'D'
-			&& input[4] == '#') {
-		Serial.print(txDEC);
-	 }*/
+	receiveCommandChar();
+	return parseCommands(motors, homingMode);
 }
+
+
 void read_sensors(AccelStepper &az, AccelStepper &el) {
 	long h_deg, h_min, h_seg, A_deg, A_min, A_seg;
 
@@ -389,17 +373,17 @@ volatile float rlyaz = 0;
 volatile float rlydec = 0;
 
 // These are variables that are only needed when debug mode is enabled
-#ifdef DEBUG
+//#ifdef DEBUG
 
 // These are variables that require debug mode and serial debug mode to be enabled
-#ifdef DEBUG_SERIAL
+//#ifdef DEBUG_SERIAL
 
 int pr = -1;
 long last_reported_az = 0;
 long last_reported_dec = 0;
 
-#endif // DEBUG_SERIAL
-#endif // DEBUG
+//#endif // DEBUG_SERIAL
+//#endif // DEBUG
 
 long last_desired_az = 0;  // Last azimuth (IN STEPS) we desired
 long last_desired_dec = 0; // Last declination (IN STEPS) we desired
@@ -418,7 +402,8 @@ float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tabl
 /**
  * This function converts from right ascension + declination to azimuth and altitude.
  */
-void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s) {
+void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
+		bool justHomed) {
 	// KEEP TIME
 	// TODO Month rollover etc
 	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
@@ -520,31 +505,23 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s) {
 	const long desired_alt = (long) round(
 			(deg_altitude / 360) * ALT_STEPS_PER_REV);
 
-	if (!isHomed) {
+	if (justHomed || !isHomed) {
 		last_desired_az = desired_az;
 		last_desired_dec = desired_alt;
-		//az_s.moveTo(desired_az);
-		//el_s.moveTo(desired_alt);
-		// Immediately track
+
 		az_s.setCurrentPosition(desired_az);
 		el_s.setCurrentPosition(desired_alt);
 	} else {
-		/*Serial.println("Executing a move!");
-		Serial.println(last_desired_az);
-		Serial.println(desired_az);
-		 Serial.println(az_s.currentPosition());*/
+
 		positions[0] = desired_az;
 		positions[1] = desired_alt;
 		motors.moveTo(positions);
 
-		last_desired_az = desired_az;
-		last_desired_dec = desired_alt;
-	}
 
 	// From here on only debug outputs happen
 #ifdef DEBUG
 #ifdef DEBUG_SERIAL
-	if (pr == -1 || pr >= 10) {
+		//if (pr == -1 || pr >= 10) {
 		Serial.print("RA ");
 		Serial.print(ra_deg);
 		Serial.print(" and DEC ");
@@ -558,17 +535,22 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s) {
 		Serial.print("/dec ");
 		Serial.print(desired_alt);
 		Serial.print(" diff ");
-		Serial.print(last_reported_az - desired_az);
+			Serial.print(last_desired_az - desired_az);
 		Serial.print(" / ");
-		Serial.println(last_reported_dec - desired_alt);
+		Serial.print(last_desired_dec - desired_alt);
+			Serial.print("°; Reported: az");
+			Serial.print(az_s.currentPosition());
+			Serial.print("/dec ");
+			Serial.println(el_s.currentPosition());
 
-		last_reported_az = desired_az;
-		last_reported_dec = desired_alt;
-		pr = 0;
+			last_desired_az = desired_az;
+			last_desired_dec = desired_alt;
+		//pr = 0;
+		//}
+		//pr++;
+#endif
+#endif
 	}
-	pr++;
-#endif
-#endif
 }
 //#endif
 
