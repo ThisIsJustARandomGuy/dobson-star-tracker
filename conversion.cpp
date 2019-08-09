@@ -44,8 +44,8 @@ volatile long encoderValue1 = 0;
 volatile int lastEncoded2 = 0;
 volatile long encoderValue2 = 0;
 char input[20];
-char txAR[10];
-char txDEC[11];
+char txAR[10];    // = "16:41:34#";
+char txDEC[11];    // = sprintf(txDEC, "+36d%c28:%02d#", 223, int(dec_m), 0);
 long TSL;
 unsigned long t_ciclo_acumulado = 0, t_ciclo;
 long Az_tel_s, Alt_tel_s;
@@ -54,20 +54,18 @@ long AR_stell_s, DEC_stell_s;
 double cos_phi, sin_phi;
 double alt, azi;
 
-long pulses_enc1 = 3200;
-long pulses_enc2 = 3200;
-
 const byte numChars = 32;
 char receivedChars[numChars];
 
-boolean newData = false;
 boolean isHomed = false;
 boolean isPositiveDeclination = false;
 
-long desiredRaSecs, desiredDecSecs;
-
 void initConversion() {
-	cos_phi = cos(
+	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m),
+			int(0));
+	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223,
+			int(dec_m), int(0));
+	/*cos_phi = cos(
 			(((latHH * 3600) + (latMM * 60) + latSS) / 3600.0) * pi / 180.0);
 	sin_phi = sin(
 			(((latHH * 3600) + (latMM * 60) + latSS) / 3600.0) * pi / 180.0);
@@ -75,7 +73,7 @@ void initConversion() {
 	TSL = poleAR_HH * 3600 + poleAR_MM * 60 + poleAR_SS + poleH_HH * 3600
 			+ poleH_MM * 60 + poleH_SS;
 	while (TSL >= 86400)
-		TSL = TSL - 86400;
+	 TSL = TSL - 86400;*/
 }
 
 void AZ_to_EQ() {
@@ -130,9 +128,9 @@ void AZ_to_EQ() {
 	decSS = ((dec_deg - decDEG) * 60 - decMM) * 60;
 	sDEC_tel = isPositiveDeclination ? 43 : 45; // 45 IS NEGATIVE; also try sDEC_tel = 43;
 
-	sprintf(txAR, "%02d:%02d:%02d#", int(arHH), int(arMM), int(arSS));
-	sprintf(txDEC, "%c%02d%c%02d:%02d#", sDEC_tel, int(decDEG), 223, int(decMM),
-			int(decSS));
+	//sprintf(txAR, "%02d:%02d:%02d#", int(arHH), int(arMM), int(arSS));
+	//sprintf(txDEC, "%c%02d%c%02d:%02d#", sDEC_tel, int(decDEG), 223, int(decMM),
+	//		int(decSS));
 
 #if defined DEBUG && defined DEBUG_SERIAL
 
@@ -155,15 +153,17 @@ void AZ_to_EQ() {
 			+ (decSS * stepsPerSec * 3600);
 
 }
-bool firstStart = false;
+
+bool newData = false;
+static boolean recvInProgress = false;
+static byte ndx = 0;
+const char startMarker = ':';
+const char endMarker = '#';
 void recvWithStartEndMarkers() {
-	static boolean recvInProgress = false;
-	static byte ndx = 0;
-	char startMarker = ':';
-	char endMarker = '#';
+
 	char rc;
 
-	while (Serial.available() > 0 && newData == false) {
+	if (Serial.available() > 0 && newData == false) {
 		rc = Serial.read();
 
 		if (recvInProgress == true) {
@@ -185,8 +185,6 @@ void recvWithStartEndMarkers() {
 	}
 }
 
-long desiredAz = 0;
-long desiredDec = 0;
 float last_ra_deg = ra_deg;
 float last_dec_deg = dec_deg;
 
@@ -194,16 +192,13 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			Serial.print(txAR);
-		}
-		if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
+		} else if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
 			Serial.print(txDEC);
-		}
-		if (receivedChars[0] == 'Q') {
+		} else if (receivedChars[0] == 'Q') {
 			// Stop moving
 			az.stop();
 			el.stop();
-		}
-		if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
+		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// Start moving
 			//az.moveTo(map(desiredRaSecs, 0, 86400, 0, 3200));
 				/*map(abs(abs(desiredRaSecs) - abs(AR_tel_s)), 0, 86400, 0,
@@ -230,48 +225,49 @@ bool showNewData(AccelStepper &az, AccelStepper &el, bool homingMode) {
 				newData = false;
 				return true;
 			}
-		}
-		if (receivedChars[0] == 'S') {
-			if (receivedChars[1] == 'r') {
-				// Set target RA
+		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'r') {
+			// Set target RA
+			long hrs = (receivedChars[3] - '0') * 10 + (receivedChars[4] - '0');
+			long mins = (receivedChars[6] - '0') * 10
+					+ (receivedChars[7] - '0');
+			long secs = (receivedChars[9] - '0') * 10
+					+ (receivedChars[10] - '0');
 
-				long hrs = (receivedChars[3] - '0') * 10
-						+ (receivedChars[4] - '0');
-				long mins = (receivedChars[6] - '0') * 10
-						+ (receivedChars[7] - '0');
-				long secs = (receivedChars[9] - '0') * 10
-						+ (receivedChars[10] - '0');
+			sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
 
-				//deg = hrs / 24 * 360 + mins / (24 * 60) + secs / (24 * 3600);
-				// This is our ultimate target value
-				last_ra_deg = ra_deg;
-				ra_deg = 360
-						* (hrs / 24. + mins / (24 * 60) + secs / (24 * 3600));
+			//deg = hrs / 24 * 360 + mins / (24 * 60) + secs / (24 * 3600);
+			// This is our ultimate target value
+			last_ra_deg = ra_deg;
+			ra_deg = 360.
+					* (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
 
-				//desiredAz = map(raDeg, 0, 86400, 0, 3200);
-				Serial.print("1");
-			}
-			if (receivedChars[1] == 'd') {
-				// Set target s
+			//desiredAz = map(raDeg, 0, 86400, 0, 3200);
+			Serial.print("1");
+		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
+			// Set target DEC
 
-				long multi = (receivedChars[3] == '+') ? 1 : -1;
+			long multi = (receivedChars[3] == '+') ? 1 : -1;
 
-				long deg = ((receivedChars[4] - '0') * 10
-								+ (receivedChars[5] - '0'));
+			long deg =
+					((receivedChars[4] - '0') * 10 + (receivedChars[5] - '0'));
 
-				long mins = (receivedChars[7] - '0') * 10
-						+ (receivedChars[8] - '0');
-				long secs = (receivedChars[10] - '0') * 10
-						+ (receivedChars[11] - '0');
+			long mins = (receivedChars[7] - '0') * 10
+					+ (receivedChars[8] - '0');
+			long secs = (receivedChars[10] - '0') * 10
+					+ (receivedChars[11] - '0');
 
-				last_dec_deg = dec_deg;
+			sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], int(deg),
+					223, int(mins), int(secs));
 
-				dec_deg = multi
-						* (deg + mins / 60. + secs / 3600.);
-				isPositiveDeclination = multi > 0;
+			last_dec_deg = dec_deg;
 
-				Serial.print("1");
-			}
+			dec_deg = multi * (deg + mins / 60. + secs / 3600.);
+			isPositiveDeclination = multi > 0;
+
+			Serial.print("1");
+		} else {
+			Serial.println("ERROR: Unknown command");
+			Serial.println(receivedChars);
 		}
 		newData = false;
 	}
@@ -308,13 +304,13 @@ void read_sensors(AccelStepper &az, AccelStepper &el) {
 
 	int enc1 = encoderValue1 / 1500;
 	long encoder1_temp = encoderValue1 - (enc1 * 1500);
-	long map1 = enc1 * map(1500, 0, pulses_enc1, 0, 324000);
+	long map1 = enc1 * map(1500, 0, AZ_STEPS_PER_REV, 0, 324000);
 	int enc2 = encoderValue2 / 1500;
 	long encoder2_temp = encoderValue2 - (enc2 * 1500);
-	long map2 = enc2 * map(1500, 0, pulses_enc2, 0, 1296000);
+	long map2 = enc2 * map(1500, 0, ALT_STEPS_PER_REV, 0, 1296000);
 
-	Alt_tel_s = map1 + map(encoder1_temp, 0, pulses_enc1, 0, 324000);
-	Az_tel_s = map2 + map(encoder2_temp, 0, pulses_enc2, 0, 1296000);
+	Alt_tel_s = map1 + map(encoder1_temp, 0, AZ_STEPS_PER_REV, 0, 324000);
+	Az_tel_s = map2 + map(encoder2_temp, 0, ALT_STEPS_PER_REV, 0, 1296000);
 
 	if (Az_tel_s < 0)
 		Az_tel_s = 1296000 + Az_tel_s;

@@ -33,10 +33,9 @@ float start_m = 10;
 float start_s = 00;
 
 
-void setup() {
 
-	//initConversion();
-
+void setupSteppers() {
+	// Set stepper pins
 	pinMode(AZ_ENABLE_PIN, OUTPUT);  // Azimuth pin
 	pinMode(ALT_ENABLE_PIN, OUTPUT); // Altitude pin
 
@@ -46,9 +45,6 @@ void setup() {
 	elevation.setMaxSpeed(30000);
 	elevation.setAcceleration(500);
 
-	// Set the telescope to homing mode (see above for what it does)
-	operating_mode = OPMODE_HOMING;
-
 	// Check for debug constants and enable the stepper drivers
 #ifdef AZ_ENABLE
 	digitalWrite(AZ_ENABLE_PIN, LOW); // Enable azimuth stepper
@@ -56,9 +52,6 @@ void setup() {
 #ifdef ALT_ENABLE
 	digitalWrite(ALT_ENABLE_PIN, LOW); // Enable altitude stepper
 #endif
-	Serial.begin(9600);
-	delay(100);
-	Serial.print("16:41:41#");
 
 #ifdef DEBUG_SERIAL
 #ifdef AZ_ENABLE
@@ -73,9 +66,22 @@ void setup() {
 	Serial.println("DBG Alt OFF");
 #endif
 #endif
+}
 
+
+void setup() {
+	Serial.begin(9600);
+
+	// This sets up communication and conversion values
+	initConversion();
+
+	setupSteppers();
+
+	// Set the telescope to homing mode (see above for what it does)
+	operating_mode = OPMODE_HOMING;
 
 }
+
 
 int calc = -1;
 
@@ -87,18 +93,15 @@ void loop() {
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
 
-	if (calc >= 10000 || calc == -1) {
-
-		if (Serial.available() > 0) {
-			if (communication(azimuth, elevation,
-					operating_mode == OPMODE_HOMING))
-				operating_mode = OPMODE_TRACKING;
-		}
+	if (Serial.available() > 0) {
+		if (communication(azimuth, elevation, operating_mode == OPMODE_HOMING))
+			operating_mode = OPMODE_TRACKING;
+	}
 
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
-		AZ_to_EQ();
+		//AZ_to_EQ();
 		EQ_to_AZ(azimuth, elevation);
 
 #if defined DEBUG && defined DEBUG_SERIAL
@@ -107,9 +110,8 @@ void loop() {
 			Serial.print(calc_time / 1000.);
 		 Serial.println("ms");*/
 #endif
-		calc = 0;
-	}
+	//calc = 0;
 
 
-	calc++;
+	//calc++;
 }
