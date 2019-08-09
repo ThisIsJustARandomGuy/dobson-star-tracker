@@ -370,8 +370,8 @@ long jul_day_2k = 2451545;
 const long timeLast;
 
 #ifdef GPS_FIXED_POS
-#define current_lat 52.5
-#define current_lng -1.91666667
+#define current_lat LAT
+#define current_lng LNG
 #else
 // GPS CODE ensues
 #endif
@@ -425,9 +425,9 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s) {
 
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
 
-	long current_day = 8;
+	long current_day = 9;
 	long current_hour = 20;
-	long current_minute = 50;
+	long current_minute = 18;
 	long current_second = 00 + passed_seconds;
 
 	// Second, Minute and Hour rollover

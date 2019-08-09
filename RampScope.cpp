@@ -39,9 +39,11 @@ void setupSteppers() {
 	pinMode(AZ_ENABLE_PIN, OUTPUT);  // Azimuth pin
 	pinMode(ALT_ENABLE_PIN, OUTPUT); // Altitude pin
 
+	azimuth.setPinsInverted(true, false, false);
 	azimuth.setMaxSpeed(AZ_MAX_SPEED);
 	azimuth.setAcceleration(AZ_MAX_ACCEL);
 
+	elevation.setPinsInverted(true, false, false);
 	elevation.setMaxSpeed(30000);
 	elevation.setAcceleration(500);
 
