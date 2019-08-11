@@ -513,9 +513,8 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		el_s.setCurrentPosition(desired_alt);
 	} else {
 
-		positions[0] = desired_az;
-		positions[1] = desired_alt;
-		motors.moveTo(positions);
+		az_s.runToNewPosition(desired_az);
+		el_s.runToNewPosition(desired_alt);
 
 
 	// From here on only debug outputs happen

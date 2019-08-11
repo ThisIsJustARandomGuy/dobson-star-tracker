@@ -19,9 +19,9 @@
 #define ALT_ENABLE_PIN       56  // RAMPS 1.4
 #define ALT_STEP_PIN         60  // RAMPS 1.4
 #define ALT_DIR_PIN          61  // RAMPS 1.4
-#define ALT_STEPS_PER_REV  320000 // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope
+#define ALT_STEPS_PER_REV  140000 // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope
 #define ALT_MAX_ACCEL       20 // Maximum acceleration for the altitude stepper
-#define ALT_MAX_SPEED       400  // Maximum speed for the altitude stepper
+#define ALT_MAX_SPEED       200  // Maximum speed for the altitude stepper
 
 /**
  * ----------------

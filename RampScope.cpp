@@ -99,12 +99,12 @@ void loop() {
 		operating_mode = OPMODE_TRACKING;
 
 
-	if (calc >= 100000 || calc == 0) {
+	if (calc >= 100 || calc == 0) {
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
 		//AZ_to_EQ();
-		delay(1000);
+		//delay(1000);
 		EQ_to_AZ(axes, azimuth, elevation, justHomed);
 
 #if defined DEBUG && defined DEBUG_SERIAL
