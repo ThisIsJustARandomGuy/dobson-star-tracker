@@ -41,10 +41,10 @@ void setupSteppers() {
 
 	// Check for debug constants and enable the stepper drivers
 #ifdef AZ_ENABLE
-	digitalWrite(AZ_ENABLE_PIN, LOW); // Enable azimuth stepper
+	//digitalWrite(AZ_ENABLE_PIN, LOW); // Enable azimuth stepper
 #endif
 #ifdef ALT_ENABLE
-	digitalWrite(ALT_ENABLE_PIN, LOW); // Enable altitude stepper
+	//digitalWrite(ALT_ENABLE_PIN, LOW); // Enable altitude stepper
 #endif
 
 #ifdef DEBUG_SERIAL
@@ -61,6 +61,30 @@ void setupSteppers() {
 #endif
 #endif
 }
+
+bool motorsEnabled = false;
+void handleSteppersOnOff() {
+	if (digitalRead(BTN_PIN) == HIGH) {
+		//Serial.println("BTN ON");
+		//if (!motorsEnabled) {
+		//Serial.println("switching ON");
+		//motorsEnabled = true;
+			// Motors ON
+			digitalWrite(AZ_ENABLE_PIN, LOW);
+			digitalWrite(ALT_ENABLE_PIN, LOW);
+		//}
+	} else {
+		//if (motorsEnabled) {
+		//Serial.println("switching OFF");
+		//motorsEnabled = false;
+			// Motors OFF
+			digitalWrite(AZ_ENABLE_PIN, HIGH);
+			digitalWrite(ALT_ENABLE_PIN, HIGH);
+		//}
+	}
+}
+
+
 FuGPS gps(Serial1);
 
 void setup() {
@@ -72,6 +96,8 @@ void setup() {
 	initConversion();
 
 	setupSteppers();
+
+	pinMode(BTN_PIN, INPUT);
 
 	// Set the telescope to homing mode (see above for what it does)
 	operating_mode = OPMODE_HOMING;
@@ -85,6 +111,7 @@ void loop() {
 	//return;
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
+	handleSteppersOnOff();
 	bool justHomed = communication(axes, operating_mode == OPMODE_HOMING);
 	if (justHomed)
 		operating_mode = OPMODE_TRACKING;
@@ -100,17 +127,19 @@ void loop() {
 	//delay(100);
 	if (calc >= 10000 || calc == 0) {
 #if defined DEBUG && defined DEBUG_SERIAL
-		long millis_start = micros();
+		long micros_start = micros();
 #endif
 		//AZ_to_EQ();
 		//delay(1000);
-		EQ_to_AZ(axes, azimuth, elevation, gps, pos, justHomed);
+		bool didMove = EQ_to_AZ(axes, azimuth, elevation, gps, pos, justHomed);
 
 #if defined DEBUG && defined DEBUG_SERIAL
-		long calc_time = micros() - millis_start;
+		if (didMove) {
+		long calc_time = micros() - micros_start;
 		Serial.print("; Move took ");
 		Serial.print(calc_time / 1000.);
 		Serial.println("ms");
+		}
 #endif
 		calc = 0;
 	}

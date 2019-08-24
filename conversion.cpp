@@ -362,8 +362,9 @@ float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tabl
 
 /**
  * This function converts from right ascension + declination to azimuth and altitude.
+ * Returns true if a move was done
  */
-void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
+bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		FuGPS &gps, Position &pos, bool justHomed) {
 	// KEEP TIME
 	// TODO Month rollover etc
@@ -375,9 +376,9 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
 
 	int current_day = 24;
-	int current_hour = pos.hours; //17; //gps.Hours;
-	int current_minute = pos.minutes; //47; //gps.Minutes;
-	int current_second = pos.seconds; //passed_seconds; //gps.Seconds;
+	int current_hour = 23; //gps.Hours;
+	int current_minute = 02; //gps.Minutes;
+	int current_second = passed_seconds; //gps.Seconds;
 
 	// Second, Minute and Hour rollover
 	while (current_second >= 60) {
@@ -489,10 +490,10 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		az_s.runToNewPosition(last_desired_az - desired_az);
 		el_s.runToNewPosition(last_desired_dec - desired_alt);
 
-
 	// From here on only debug outputs happen
 #if defined DEBUG && defined DEBUG_SERIAL
-		//if (pr == -1 || pr >= 10) {
+		if (last_desired_az - desired_az > 0
+				|| last_desired_dec - desired_alt > 0) { //  pr == -1 || pr >= 10) {
 		Serial.print(
 				gps.hasFix() ?
 						"GPS: " + String(gps.Satellites, 6) + "S/"
@@ -533,12 +534,20 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		Serial.print("/dec ");
 		Serial.print(el_s.currentPosition());
 
-		last_desired_az = desired_az;
-		last_desired_dec = desired_alt;
+
 		//	pr = 0;
-		//}
+		}
 		//pr++;
 #endif
+	}
+
+	if (last_desired_az - desired_az > 0
+			|| last_desired_dec - desired_alt > 0) {
+		last_desired_az = desired_az;
+		last_desired_dec = desired_alt;
+		return true;
+	} else {
+		return false;
 	}
 }
 //#endif

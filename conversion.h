@@ -27,7 +27,7 @@ void read_sensors(AccelStepper &az, AccelStepper &el);
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-void EQ_to_AZ(MultiStepper &motors, AccelStepper &az, AccelStepper &el,
+bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az, AccelStepper &el,
 		FuGPS &gps, Position &pos,
 		bool justHomed);
 

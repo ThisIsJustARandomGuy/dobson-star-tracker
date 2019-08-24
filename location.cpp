@@ -121,7 +121,7 @@ Position& handleGPS(FuGPS &fuGPS) {
 		}
 
 #if defined(DEBUG) && defined(DEBUG_SERIAL) && defined(DEBUG_GPS)
-		Serial.println(String(fuGPS.Hours, 6));
+		//Serial.println(String(fuGPS.Hours, 6));
 		//Serial.println((fuGPS.Minutes / 255.00 * 60.00 - 30));
 		//Serial.println(fuGPS.Seconds / 255.00 * 60.00);
 		Serial.println(
@@ -158,4 +158,3 @@ Position& handleGPS(FuGPS &fuGPS) {
 
 	return gpsPosition;
 }
-

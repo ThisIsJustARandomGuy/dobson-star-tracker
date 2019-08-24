@@ -9,6 +9,7 @@
 #define Y_STEP_PIN         60
 #define Y_DIR_PIN          61
 
-
+#define E_STEP_PIN         36   // BTN 1
+#define E_DIR_PIN          34   // BTN 2
 
 #endif
