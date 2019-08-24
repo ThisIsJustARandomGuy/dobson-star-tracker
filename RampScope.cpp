@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <AccelStepper.h>
-#include <TimerOne.h>
 #include <MultiStepper.h>
 
 #include "./config.h"
@@ -24,16 +23,6 @@ Moon dummyMoon;
 
 
 
-float start_y = 2019;
-float start_mo = 8;
-float start_d = 5;
-
-float start_h = 23;
-float start_m = 10;
-float start_s = 00;
-
-
-
 void setupSteppers() {
 	// Set stepper pins
 	pinMode(AZ_ENABLE_PIN, OUTPUT);  // Azimuth pin
@@ -44,8 +33,8 @@ void setupSteppers() {
 	azimuth.setAcceleration(AZ_MAX_ACCEL);
 
 	elevation.setPinsInverted(true, false, false);
-	elevation.setMaxSpeed(30000);
-	elevation.setAcceleration(500);
+	elevation.setMaxSpeed(ALT_MAX_SPEED);
+	elevation.setAcceleration(ALT_MAX_ACCEL);
 
 	axes.addStepper(azimuth);
 	axes.addStepper(elevation);
@@ -75,6 +64,7 @@ void setupSteppers() {
 
 
 void setup() {
+	delay(1000);
 	Serial.begin(9600);
 
 	// This sets up communication and conversion values
@@ -84,7 +74,6 @@ void setup() {
 
 	// Set the telescope to homing mode (see above for what it does)
 	operating_mode = OPMODE_HOMING;
-
 }
 
 
@@ -97,9 +86,17 @@ void loop() {
 	bool justHomed = communication(axes, operating_mode == OPMODE_HOMING);
 	if (justHomed)
 		operating_mode = OPMODE_TRACKING;
+#ifdef DEBUG_SERIAL
+	// In Serial debug mode we always home first thing
+	if (calc == 0) {
+		Serial.println("Set home");
+		justHomed = true;
+		operating_mode = OPMODE_TRACKING;
+	}
+#endif
 
-
-	if (calc >= 100 || calc == 0) {
+	//delay(000);
+	if (calc >= 1000 || calc == 0) {
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
@@ -109,14 +106,12 @@ void loop() {
 
 #if defined DEBUG && defined DEBUG_SERIAL
 		long calc_time = micros() - millis_start;
-		/*Serial.print("Calc took ");
-			Serial.print(calc_time / 1000.);
-		 Serial.println("ms");*/
+		Serial.print("; Move took ");
+		Serial.print(calc_time / 1000.);
+		Serial.println("ms");
 #endif
 		calc = 0;
 	}
 
 	calc++;
-
-	axes.runSpeedToPosition();
 }

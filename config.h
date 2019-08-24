@@ -8,9 +8,9 @@
 #define AZ_ENABLE_PIN       38    // RAMPS 1.4
 #define AZ_STEP_PIN         54    // RAMPS 1.4
 #define AZ_DIR_PIN          55    // RAMPS 1.4
-#define AZ_STEPS_PER_REV  32000   // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope
-#define AZ_MAX_ACCEL       20    // Maximum acceleration for the azimuth stepper
-#define AZ_MAX_SPEED       400    // Maximum speed for the azimuth stepper
+#define AZ_STEPS_PER_REV  119467   // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope
+#define AZ_MAX_ACCEL       30    // Maximum acceleration for the azimuth stepper
+#define AZ_MAX_SPEED       1000    // Maximum speed for the azimuth stepper
 
 /*
  * Altitude stepper
@@ -20,8 +20,8 @@
 #define ALT_STEP_PIN         60  // RAMPS 1.4
 #define ALT_DIR_PIN          61  // RAMPS 1.4
 #define ALT_STEPS_PER_REV  140000 // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope
-#define ALT_MAX_ACCEL       20 // Maximum acceleration for the altitude stepper
-#define ALT_MAX_SPEED       200  // Maximum speed for the altitude stepper
+#define ALT_MAX_ACCEL       1000 // Maximum acceleration for the altitude stepper
+#define ALT_MAX_SPEED       20000  // Maximum speed for the altitude stepper
 
 /**
  * ----------------
@@ -56,7 +56,7 @@
 // Do NOT set to something ridiculously high if your motors are connected or rapid unplanned disassembly of setup may occur
 // DO use this to test your setup, but start with sensible values like 1
 // Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual time. We're actively working on that feature (PR #1)
-const short TIME_FACTOR = 60;
+const short TIME_FACTOR = 1;
 
 // For a successful build you have to either
 // 1) uncomment this and set the LAT and LNG in the next lines or
@@ -68,7 +68,7 @@ const short TIME_FACTOR = 60;
 #define LNG 12.846258 // Observer longitude in degrees
 
 #define TIMEZONE_CORRECTION_H -2 // Timezone correction to convert to UTC
-#endif
+#endif /* !GPS_FIXED_POS */
 
 /**
  * ----------------
@@ -78,6 +78,6 @@ const short TIME_FACTOR = 60;
  */
 #ifndef GPS_FIXED_POS
 // GPS setup will be here
-#endif
+#endif /* GPS_FIXED_POS */
 
 #endif /* CONFIG_H_ */

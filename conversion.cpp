@@ -27,12 +27,12 @@ int poleH_MM = 20;
 int poleH_SS = 50;
 
 // DESIRED COORDINATES. THIS IS IMPORTANT
-float ra_h = 16;
-float ra_m = 41.7;
+float ra_h = 0;    //16;
+float ra_m = 0;    //41.7;
 float ra_deg = (ra_h + ra_m / 60) * 15;
 
-float dec_d = 36;
-float dec_m = 28;
+float dec_d = 0;    //36;
+float dec_m = 0;    //28;
 float dec_deg = dec_d + dec_m / 60;
 
 
@@ -84,39 +84,6 @@ void AZ_to_EQ() {
 	long decDEG, decMM, decSS;
 	char sDEC_tel;
 
-	/*A_telRAD = (Az_tel_s / 3600.0) * pi / 180.0;
-	h_telRAD = (Alt_tel_s / 3600.0) * pi / 180.0;
-	sin_h = sin(h_telRAD);
-	cos_h = cos(h_telRAD);
-	sin_A = sin(A_telRAD);
-	cos_A = cos(A_telRAD);
-	delta_tel = asin((sin_phi * sin_h) + (cos_phi * cos_h * cos_A));
-	sin_DEC = sin(delta_tel);
-	cos_DEC = cos(delta_tel);
-	DEC_tel_s = long((delta_tel * 180.0 / pi) * 3600.0);
-
-	while (DEC_tel_s >= 324000) {
-		DEC_tel_s = DEC_tel_s - 324000;
-	}
-	while (DEC_tel_s <= -324000) {
-		DEC_tel_s = DEC_tel_s + 324000;
-	}
-
-	H_telRAD = acos((sin_h - (sin_phi * sin_DEC)) / (cos_phi * cos_DEC));
-	H_tel = long((H_telRAD * 180.0 / pi) * 240.0);
-
-	if (sin_A >= 0) {
-		H_tel = 86400 - H_tel;
-	}
-	AR_tel_s = TSL - H_tel;
-
-	while (AR_tel_s < 0) {
-		AR_tel_s = AR_tel_s + 86400;
-	}
-	while (AR_tel_s >= 86400) {
-		AR_tel_s = AR_tel_s - 86400;
-	 }*/
-
 	float percent_day = ra_deg / 360;
 
 	arHH = percent_day * 24;
@@ -145,13 +112,6 @@ void AZ_to_EQ() {
 	Serial.println(txAR);
 	Serial.println(txDEC);
 #endif
-
-	const float stepsPerSec = (3200 / (24 * 60 * 60));
-	const long azPosition = arSS * stepsPerSec + (arMM * stepsPerSec * 60)
-			+ (arHH * stepsPerSec * 3600);
-	const long elPosition = decDEG * stepsPerSec + (decMM * stepsPerSec * 60)
-			+ (decSS * stepsPerSec * 3600);
-
 }
 
 bool newData = false; // Gets set to true whenever a complete command is buffered
@@ -306,14 +266,14 @@ void read_sensors(AccelStepper &az, AccelStepper &el) {
 	if (Az_tel_s >= 1296000)
 		Az_tel_s = Az_tel_s - 1296000;
 
-	Serial.print("Values are (az, el): ");
+	/*Serial.print("Values are (az, el): ");
 	Serial.print(encoderValue1);
 	Serial.print(", ");
 	Serial.print(encoderValue2);
 	Serial.print("; alt/az: ");
 	Serial.print(Alt_tel_s);
 	Serial.print(", ");
-	Serial.println(Az_tel_s);
+	 Serial.println(Az_tel_s);*/
 }
 
 void loopConversion() {
@@ -351,7 +311,7 @@ float ecliptic_longitude_sun(float T) {
 long jul_day_2k = 2451545;
 
 // According to http://www.geoastro.de/elevaz/basics/index.htm
-const long timeLast;
+const long timeLast = 0;
 
 #ifdef GPS_FIXED_POS
 #define current_lat LAT
@@ -410,9 +370,9 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
 
-	long current_day = 9;
+	long current_day = 16;
 	long current_hour = 20;
-	long current_minute = 18;
+	long current_minute = 20;
 	long current_second = 00 + passed_seconds;
 
 	// Second, Minute and Hour rollover
@@ -461,7 +421,7 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 	float hour_angle = local_siderian_time - ra_deg;
 	// ...but we need to ensure that it's greater than 0
 	while (hour_angle < 0) {
-		hour_angle += 360.0;
+		hour_angle += 360.0; // Maybe this is buggy
 	}
 
 	// Convert various values from degrees to radians since the trigonometry functions work with radians
@@ -493,33 +453,41 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 	// Azimuth in degrees is either 360-a or a, depending on whether sin(rad_hour_angle) is positive.
 	// It be like it is and it's also the second part of the result
 	float deg_azimuth;
+	// TODO This is buggy. When az=-57.3
 	if (sin(rad_hour_angle) > 0) {
 		deg_azimuth = 360 - a;
 	} else {
 		deg_azimuth = a;
 	}
+	deg_azimuth = a;
 
 	// TODO Is this really necessary to have it this complex? No
-	const long desired_az = (long) round(
+	const long desired_az = (long) (
 			(deg_azimuth / 360) * AZ_STEPS_PER_REV);
-	const long desired_alt = (long) round(
+	const long desired_alt = (long) (
 			(deg_altitude / 360) * ALT_STEPS_PER_REV);
 
 	if (justHomed || !isHomed) {
-		last_desired_az = desired_az;
-		last_desired_dec = desired_alt;
+		//Serial.print("Just homed to ");
+		//Serial.print(desired_az);
+		//Serial.print(" / ");
+		//Serial.println(desired_alt);
 
 		az_s.setCurrentPosition(desired_az);
 		el_s.setCurrentPosition(desired_alt);
-	} else {
 
-		az_s.runToNewPosition(desired_az);
-		el_s.runToNewPosition(desired_alt);
+		last_desired_az = desired_az;
+		last_desired_dec = desired_alt;
+		isHomed = true;
+	} else {
+		az_s.setCurrentPosition(0);
+		el_s.setCurrentPosition(0);
+		az_s.runToNewPosition(last_desired_az - desired_az);
+		el_s.runToNewPosition(last_desired_dec - desired_alt);
 
 
 	// From here on only debug outputs happen
-#ifdef DEBUG
-#ifdef DEBUG_SERIAL
+#if defined DEBUG && defined DEBUG_SERIAL
 		//if (pr == -1 || pr >= 10) {
 		Serial.print("RA ");
 		Serial.print(ra_deg);
@@ -529,25 +497,34 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		Serial.print(deg_altitude);
 		Serial.print("° AZ ");
 		Serial.print(deg_azimuth);
-		Serial.print("°; Steppers: az");
+		Serial.print("° HA ");
+		Serial.print(rad_hour_angle);
+		Serial.print("° sin(HA) ");
+		Serial.print(sin(rad_hour_angle));
+		Serial.print("ANG; The time is: ");
+		Serial.print(current_hour);
+		Serial.print(":");
+		Serial.print(current_minute);
+		Serial.print(":");
+		Serial.print(current_second);
+		Serial.print("Steppers: az");
 		Serial.print(desired_az);
 		Serial.print("/dec ");
 		Serial.print(desired_alt);
 		Serial.print(" diff ");
-			Serial.print(last_desired_az - desired_az);
+		Serial.print(last_desired_az - desired_az);
 		Serial.print(" / ");
 		Serial.print(last_desired_dec - desired_alt);
-			Serial.print("°; Reported: az");
-			Serial.print(az_s.currentPosition());
-			Serial.print("/dec ");
-			Serial.println(el_s.currentPosition());
+		Serial.print("°; Reported: az");
+		Serial.print(az_s.currentPosition());
+		Serial.print("/dec ");
+		Serial.print(el_s.currentPosition());
 
-			last_desired_az = desired_az;
-			last_desired_dec = desired_alt;
-		//pr = 0;
+		last_desired_az = desired_az;
+		last_desired_dec = desired_alt;
+		//	pr = 0;
 		//}
 		//pr++;
-#endif
 #endif
 	}
 }
