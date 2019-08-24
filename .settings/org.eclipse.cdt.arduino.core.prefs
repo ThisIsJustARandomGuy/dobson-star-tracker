@@ -1,2 +1,2 @@
 eclipse.preferences.version=1
-libraries=["FuGPS Library","AccelStepper"]
+libraries=["FuGPS Library",{"package"\:"arduino","platform"\:"avr","library"\:"EEPROM"},"AccelStepper"]

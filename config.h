@@ -9,8 +9,8 @@
 #define AZ_STEP_PIN         54    // RAMPS 1.4
 #define AZ_DIR_PIN          55    // RAMPS 1.4
 #define AZ_STEPS_PER_REV  119467   // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope
-#define AZ_MAX_ACCEL       30    // Maximum acceleration for the azimuth stepper
-#define AZ_MAX_SPEED       1000    // Maximum speed for the azimuth stepper
+#define AZ_MAX_ACCEL       70    // Maximum acceleration for the azimuth stepper
+#define AZ_MAX_SPEED       2000    // Maximum speed for the azimuth stepper
 
 /*
  * Altitude stepper
@@ -32,10 +32,10 @@
  */
 
 // Uncomment the following line to enable various debug features that would otherwise not get compiled into the firmware
-//#define DEBUG
+#define DEBUG
 
 // Uncomment the following line to enable sending debug statements via the serial port
-//#define DEBUG_SERIAL
+#define DEBUG_SERIAL
 
 // Uncomment the following line to disable the stepper drivers
 //#define DEBUG_DISABLE_ALL_STEPPERS

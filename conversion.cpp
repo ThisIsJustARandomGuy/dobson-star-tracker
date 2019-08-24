@@ -11,6 +11,7 @@
 
 #include "./config.h"
 #include "./conversion.h"
+#include "./location.h"
 
 int latHH = 47;    // this means 40º North
 int latMM = 25;
@@ -27,12 +28,12 @@ int poleH_MM = 20;
 int poleH_SS = 50;
 
 // DESIRED COORDINATES. THIS IS IMPORTANT
-float ra_h = 0;    //16;
-float ra_m = 0;    //41.7;
+float ra_h = 16;
+float ra_m = 41.7;
 float ra_deg = (ra_h + ra_m / 60) * 15;
 
-float dec_d = 0;    //36;
-float dec_m = 0;    //28;
+float dec_d = 36;
+float dec_m = 28;
 float dec_deg = dec_d + dec_m / 60;
 
 
@@ -313,12 +314,12 @@ long jul_day_2k = 2451545;
 // According to http://www.geoastro.de/elevaz/basics/index.htm
 const long timeLast = 0;
 
-#ifdef GPS_FIXED_POS
-#define current_lat LAT
-#define current_lng LNG
-#else
+//#ifdef GPS_FIXED_POS
+long current_lat = LAT;
+long current_lng = LNG;
+//#else
 // GPS CODE ensues
-#endif
+//#endif
 
 
 float deg2rad(float degs) {
@@ -363,17 +364,20 @@ float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tabl
  * This function converts from right ascension + declination to azimuth and altitude.
  */
 void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
-		bool justHomed) {
+		FuGPS &gps, Position &pos, bool justHomed) {
 	// KEEP TIME
 	// TODO Month rollover etc
 	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
 
+	current_lat = pos.latitude;
+	current_lng = pos.longitude;
+
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
 
 	long current_day = 16;
-	long current_hour = 20;
-	long current_minute = 20;
-	long current_second = 00 + passed_seconds;
+	long current_hour = 17; //gps.Hours;
+	long current_minute = 47; //gps.Minutes;
+	long current_second = passed_seconds; //gps.Seconds;
 
 	// Second, Minute and Hour rollover
 	while (current_second >= 60) {

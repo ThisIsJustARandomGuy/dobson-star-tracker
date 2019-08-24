@@ -61,12 +61,12 @@ void setupSteppers() {
 #endif
 #endif
 }
-
+FuGPS gps(Serial1);
 
 void setup() {
-	Serial.begin(9600);
-	initGPS();
-	return; // TODO remove
+	Serial.begin(115200);
+	initGPS (gps);
+	//return; // TODO remove
 
 	// This sets up communication and conversion values
 	initConversion();
@@ -81,8 +81,8 @@ void setup() {
 unsigned int calc = 0;
 
 void loop() {
-	handleGPS();
-	return;
+	Position pos = handleGPS(gps);
+	//return;
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
 	bool justHomed = communication(axes, operating_mode == OPMODE_HOMING);
@@ -97,14 +97,14 @@ void loop() {
 	}
 #endif
 
-	//delay(000);
-	if (calc >= 1000 || calc == 0) {
+	//delay(100);
+	if (calc >= 10000 || calc == 0) {
 #if defined DEBUG && defined DEBUG_SERIAL
 		long millis_start = micros();
 #endif
 		//AZ_to_EQ();
 		//delay(1000);
-		EQ_to_AZ(axes, azimuth, elevation, justHomed);
+		EQ_to_AZ(axes, azimuth, elevation, gps, pos, justHomed);
 
 #if defined DEBUG && defined DEBUG_SERIAL
 		long calc_time = micros() - millis_start;

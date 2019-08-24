@@ -12,6 +12,7 @@ endif
 PROJECT_OBJS = \
 	project/RampScope.cpp.o \
 	project/conversion.cpp.o \
+	project/eeprom.cpp.o \
 	project/location.cpp.o \
 
 PLATFORM_CORE_OBJS = \
@@ -74,7 +75,7 @@ size:
 
 project/RampScope.cpp.o: ../../RampScope.cpp project/RampScope.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 
 project/RampScope.cpp.d: ;
 
@@ -82,15 +83,23 @@ project/RampScope.cpp.d: ;
 
 project/conversion.cpp.o: ../../conversion.cpp project/conversion.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 
 project/conversion.cpp.d: ;
 
 -include project/conversion.cpp.d 
 
+project/eeprom.cpp.o: ../../eeprom.cpp project/eeprom.cpp.d
+	@$(call mymkdir,$(dir $@))
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+
+project/eeprom.cpp.d: ;
+
+-include project/eeprom.cpp.d 
+
 project/location.cpp.o: ../../location.cpp project/location.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 
 project/location.cpp.d: ;
 
@@ -99,7 +108,7 @@ project/location.cpp.d: ;
 
 core/abi.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/abi.cpp core/abi.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/abi.cpp.d: ;
@@ -108,7 +117,7 @@ core/abi.cpp.d: ;
 
 core/CDC.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/CDC.cpp core/CDC.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/CDC.cpp.d: ;
@@ -117,7 +126,7 @@ core/CDC.cpp.d: ;
 
 core/HardwareSerial.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/HardwareSerial.cpp core/HardwareSerial.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/HardwareSerial.cpp.d: ;
@@ -126,7 +135,7 @@ core/HardwareSerial.cpp.d: ;
 
 core/HardwareSerial0.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/HardwareSerial0.cpp core/HardwareSerial0.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/HardwareSerial0.cpp.d: ;
@@ -135,7 +144,7 @@ core/HardwareSerial0.cpp.d: ;
 
 core/HardwareSerial1.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/HardwareSerial1.cpp core/HardwareSerial1.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/HardwareSerial1.cpp.d: ;
@@ -144,7 +153,7 @@ core/HardwareSerial1.cpp.d: ;
 
 core/HardwareSerial2.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/HardwareSerial2.cpp core/HardwareSerial2.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/HardwareSerial2.cpp.d: ;
@@ -153,7 +162,7 @@ core/HardwareSerial2.cpp.d: ;
 
 core/HardwareSerial3.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/HardwareSerial3.cpp core/HardwareSerial3.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/HardwareSerial3.cpp.d: ;
@@ -162,7 +171,7 @@ core/HardwareSerial3.cpp.d: ;
 
 core/hooks.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/hooks.c core/hooks.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/hooks.c.d: ;
@@ -171,7 +180,7 @@ core/hooks.c.d: ;
 
 core/IPAddress.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/IPAddress.cpp core/IPAddress.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/IPAddress.cpp.d: ;
@@ -180,7 +189,7 @@ core/IPAddress.cpp.d: ;
 
 core/main.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/main.cpp core/main.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/main.cpp.d: ;
@@ -189,7 +198,7 @@ core/main.cpp.d: ;
 
 core/new.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/new.cpp core/new.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/new.cpp.d: ;
@@ -198,7 +207,7 @@ core/new.cpp.d: ;
 
 core/PluggableUSB.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/PluggableUSB.cpp core/PluggableUSB.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/PluggableUSB.cpp.d: ;
@@ -207,7 +216,7 @@ core/PluggableUSB.cpp.d: ;
 
 core/Print.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/Print.cpp core/Print.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/Print.cpp.d: ;
@@ -216,7 +225,7 @@ core/Print.cpp.d: ;
 
 core/Stream.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/Stream.cpp core/Stream.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/Stream.cpp.d: ;
@@ -225,7 +234,7 @@ core/Stream.cpp.d: ;
 
 core/Tone.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/Tone.cpp core/Tone.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/Tone.cpp.d: ;
@@ -234,7 +243,7 @@ core/Tone.cpp.d: ;
 
 core/USBCore.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/USBCore.cpp core/USBCore.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/USBCore.cpp.d: ;
@@ -243,7 +252,7 @@ core/USBCore.cpp.d: ;
 
 core/WInterrupts.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/WInterrupts.c core/WInterrupts.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/WInterrupts.c.d: ;
@@ -252,7 +261,7 @@ core/WInterrupts.c.d: ;
 
 core/wiring.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/wiring.c core/wiring.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/wiring.c.d: ;
@@ -261,7 +270,7 @@ core/wiring.c.d: ;
 
 core/wiring_analog.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/wiring_analog.c core/wiring_analog.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/wiring_analog.c.d: ;
@@ -270,7 +279,7 @@ core/wiring_analog.c.d: ;
 
 core/wiring_digital.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/wiring_digital.c core/wiring_digital.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/wiring_digital.c.d: ;
@@ -279,7 +288,7 @@ core/wiring_digital.c.d: ;
 
 core/wiring_pulse.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/wiring_pulse.c core/wiring_pulse.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/wiring_pulse.c.d: ;
@@ -288,12 +297,12 @@ core/wiring_pulse.c.d: ;
 
 core/wiring_pulse.S.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/wiring_pulse.S
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -x assembler-with-cpp -flto -MMD -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -x assembler-with-cpp -flto -MMD -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/wiring_shift.c.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/wiring_shift.c core/wiring_shift.c.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc" -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 	
 core/wiring_shift.c.d: ;
@@ -302,7 +311,7 @@ core/wiring_shift.c.d: ;
 
 core/WMath.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/WMath.cpp core/WMath.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/WMath.cpp.d: ;
@@ -311,7 +320,7 @@ core/WMath.cpp.d: ;
 
 core/WString.cpp.o: C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino/WString.cpp core/WString.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-gcc-ar" rcs  "./core.a" "$@"
 
 core/WString.cpp.d: ;
@@ -322,7 +331,7 @@ core/WString.cpp.d: ;
 
 libraries/FuGPS_Library/1.1.0/src/FuGPS.cpp.o: C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src/FuGPS.cpp libraries/FuGPS_Library/1.1.0/src/FuGPS.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 
 libraries/FuGPS_Library/1.1.0/src/FuGPS.cpp.d: ;
 
@@ -330,7 +339,7 @@ libraries/FuGPS_Library/1.1.0/src/FuGPS.cpp.d: ;
 
 libraries/AccelStepper/1.58.0/src/AccelStepper.cpp.o: C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src/AccelStepper.cpp libraries/AccelStepper/1.58.0/src/AccelStepper.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 
 libraries/AccelStepper/1.58.0/src/AccelStepper.cpp.d: ;
 
@@ -338,7 +347,7 @@ libraries/AccelStepper/1.58.0/src/AccelStepper.cpp.d: ;
 
 libraries/AccelStepper/1.58.0/src/MultiStepper.cpp.o: C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src/MultiStepper.cpp libraries/AccelStepper/1.58.0/src/MultiStepper.cpp.d
 	@$(call mymkdir,$(dir $@))
-	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
+	"C:/Users/lukas/.arduinocdt/packages/arduino/tools/avr-gcc/5.4.0-atmel3.6.1-arduino2/bin/avr-g++" -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=10608 -DARDUINO_AVR_MEGA2560 -DARDUINO_ARCH_AVR   -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/cores/arduino" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/variants/mega" -I"C:/Users/lukas/.arduinocdt/libraries/FuGPS_Library/1.1.0/src" -I"C:/Users/lukas/.arduinocdt/packages/arduino/hardware/avr/1.6.23/libraries/EEPROM/src" -I"C:/Users/lukas/.arduinocdt/libraries/AccelStepper/1.58.0/src" "$<" -o "$@"
 
 libraries/AccelStepper/1.58.0/src/MultiStepper.cpp.d: ;
 

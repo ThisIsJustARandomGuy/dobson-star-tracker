@@ -12,7 +12,9 @@
 
 #include <AccelStepper.h>
 #include <MultiStepper.h>
+#include <FuGPS.h>
 
+#include "location.h"
 
 void initConversion();
 void loopConversion();
@@ -26,6 +28,7 @@ float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
 void EQ_to_AZ(MultiStepper &motors, AccelStepper &az, AccelStepper &el,
+		FuGPS &gps, Position &pos,
 		bool justHomed);
 
 #endif /* CONVERSION_H_ */
