@@ -76,8 +76,10 @@ const short TIME_FACTOR = 1;
  * This whole section is ignored, if GPS_FIXED_POS is enabled in the debug section above.
  * ----------------
  */
-#ifndef GPS_FIXED_POS
-// GPS setup will be here
+#ifdef GPS_FIXED_POS
+
+#define GPS_SERIAL_PORT Serial1 // Serial 1 TX on Arduino is connected to RX on the GPS module
+
 #endif /* GPS_FIXED_POS */
 
 #endif /* CONFIG_H_ */

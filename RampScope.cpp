@@ -3,7 +3,7 @@
 #include <MultiStepper.h>
 
 #include "./config.h"
-#include "./Moon.h"
+#include "./location.h"
 
 #include "./conversion.h"
 
@@ -19,7 +19,7 @@ byte operating_mode = OPMODE_INITIALIZING;
 
 MultiStepper axes;
 
-Moon dummyMoon;
+//Moon dummyMoon;
 
 
 
@@ -64,8 +64,9 @@ void setupSteppers() {
 
 
 void setup() {
-	delay(1000);
 	Serial.begin(9600);
+	initGPS();
+	return; // TODO remove
 
 	// This sets up communication and conversion values
 	initConversion();
@@ -80,7 +81,8 @@ void setup() {
 unsigned int calc = 0;
 
 void loop() {
-
+	handleGPS();
+	return;
 	//loopConversion();
 	//read_sensors(azimuth, elevation);
 	bool justHomed = communication(axes, operating_mode == OPMODE_HOMING);
