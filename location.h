@@ -7,10 +7,14 @@ struct Position {
 	float altitude;
 	float latitude;
 	float longitude;
+	int hours;
+	int minutes;
+	int seconds;
 };
 
 void loadFromEEPROM();
-void updateEEPROM(float altitude, float latitude, float longitude);
+void updateEEPROM(float altitude, float latitude, float longitude, int hours,
+		int minutes, int seconds);
 Position& initGPS(FuGPS &gps);
 Position& handleGPS(FuGPS &gps);
 

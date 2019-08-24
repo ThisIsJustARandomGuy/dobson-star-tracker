@@ -369,15 +369,15 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 	// TODO Month rollover etc
 	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
 
-	current_lat = pos.latitude;
-	current_lng = pos.longitude;
+	current_lat = pos.latitude > 1.00 ? pos.latitude : LAT;
+	current_lng = pos.longitude > 1.00 ? pos.longitude : LNG;
 
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
 
-	long current_day = 16;
-	long current_hour = 17; //gps.Hours;
-	long current_minute = 47; //gps.Minutes;
-	long current_second = passed_seconds; //gps.Seconds;
+	int current_day = 24;
+	int current_hour = pos.hours; //17; //gps.Hours;
+	int current_minute = pos.minutes; //47; //gps.Minutes;
+	int current_second = pos.seconds; //passed_seconds; //gps.Seconds;
 
 	// Second, Minute and Hour rollover
 	while (current_second >= 60) {
@@ -493,7 +493,16 @@ void EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 	// From here on only debug outputs happen
 #if defined DEBUG && defined DEBUG_SERIAL
 		//if (pr == -1 || pr >= 10) {
-		Serial.print("RA ");
+		Serial.print(
+				gps.hasFix() ?
+						"GPS: " + String(gps.Satellites, 6) + "S/"
+								+ String(gps.Quality) + "Q" :
+						"GPS: N/A");
+		Serial.print("; LAT ");
+		Serial.print(current_lat);
+		Serial.print(", LNG ");
+		Serial.print(current_lng);
+		Serial.print("; RA ");
 		Serial.print(ra_deg);
 		Serial.print(" and DEC ");
 		Serial.print(dec_deg);

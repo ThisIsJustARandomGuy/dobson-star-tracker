@@ -37,6 +37,9 @@
 // Uncomment the following line to enable sending debug statements via the serial port
 #define DEBUG_SERIAL
 
+// Uncomment the following line to enable debug messages of the GPS module
+//#define DEBUG_GPS
+
 // Uncomment the following line to disable the stepper drivers
 //#define DEBUG_DISABLE_ALL_STEPPERS
 //#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor
