@@ -23,7 +23,7 @@
 #define ALT_MAX_ACCEL       1000 // Maximum acceleration for the altitude stepper
 #define ALT_MAX_SPEED       20000  // Maximum speed for the altitude stepper
 
-#define BTN_PIN    34 // RAMPS Q_DIR_PIN
+#define STEPPERS_ON_PIN    34 // RAMPS Q_DIR_PIN. If this pin is HIGH, the steppers are turned on
 /**
  * ----------------
  * Debug section

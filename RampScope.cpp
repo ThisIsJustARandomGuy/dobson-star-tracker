@@ -64,7 +64,7 @@ void setupSteppers() {
 
 bool motorsEnabled = false;
 void handleSteppersOnOff() {
-	if (digitalRead(BTN_PIN) == HIGH) {
+	if (digitalRead(STEPPERS_ON_PIN) == HIGH) {
 		//Serial.println("BTN ON");
 		//if (!motorsEnabled) {
 		//Serial.println("switching ON");
@@ -97,7 +97,7 @@ void setup() {
 
 	setupSteppers();
 
-	pinMode(BTN_PIN, INPUT);
+	pinMode(STEPPERS_ON_PIN, INPUT);
 
 	// Set the telescope to homing mode (see above for what it does)
 	operating_mode = OPMODE_HOMING;
