@@ -41,8 +41,10 @@
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS
 
-// Uncomment the following line to disable the stepper drivers
-//#define DEBUG_DISABLE_ALL_STEPPERS
+// If this is uncommented the telescope assumes that it is homed on startup to whatever position is set in conversion.cpp
+//#define DEBUG_HOME_IMMEDIATELY
+
+//#define DEBUG_DISABLE_ALL_STEPPERS     // Uncomment this to disable ALL stepper drivers
 //#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor
 //#define DEBUG_DISABLE_ALTITUDE_STEPPER // Uncomment this to disable only the altitude stepper
 
@@ -85,5 +87,38 @@ const short TIME_FACTOR = 1;
 #define GPS_SERIAL_PORT Serial1 // Serial 1 TX on Arduino is connected to RX on the GPS module
 
 #endif /* GPS_FIXED_POS */
+
+/*
+ * Debug macros. These can be ignored
+ */
+#if defined DEBUG && defined DEBUG_SERIAL
+#define DEBUG_PRINTLN(x)  Serial.print(x)
+#define DEBUG_PRINT(x)    Serial.print(x)
+#define DEBUG_VERBOSE_PRINT(x)   \
+		   Serial.print(millis());\
+		   Serial.print(": ");     \
+		   Serial.print(__PRETTY_FUNCTION__); \
+		   Serial.print(' ');        \
+		   Serial.print(__FILE__);    \
+		   Serial.print(':');          \
+		   Serial.print(__LINE__);      \
+		   Serial.print(' ');            \
+		   Serial.print(str);
+#define DEBUG_VERBOSE_PRINTLN(x) \
+		   Serial.print(millis());\
+		   Serial.print(": ");     \
+		   Serial.print(__PRETTY_FUNCTION__); \
+		   Serial.print(' ');        \
+		   Serial.print(__FILE__);    \
+		   Serial.print(':');          \
+		   Serial.print(__LINE__);      \
+		   Serial.print(' ');            \
+		   Serial.println(str);
+#else
+#define DEBUG_PRINTLN(x)
+#define DEBUG_PRINT(x)
+#define DEBUG_VERBOSE_PRINT(x)
+#define DEBUG_VERBOSE_PRINTLN(x)
+#endif
 
 #endif /* CONFIG_H_ */

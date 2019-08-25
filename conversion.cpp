@@ -13,10 +13,6 @@
 #include "./conversion.h"
 #include "./location.h"
 
-int latHH = 47;    // this means 40ยบ North
-int latMM = 25;
-int latSS = 37;
-
 // enter Pole Star right ascention (AR: HH:MM:SS)
 int poleAR_HH = 2;    // this means 2 hours, 52 minutes and 16 seconds
 int poleAR_MM = 57;
@@ -37,13 +33,7 @@ float dec_m = 28;
 float dec_deg = dec_d + dec_m / 60;
 
 
-
-unsigned long seg_sideral = 1003;
 const double pi = 3.14159265358979324;
-volatile int lastEncoded1 = 0;
-volatile long encoderValue1 = 0;
-volatile int lastEncoded2 = 0;
-volatile long encoderValue2 = 0;
 char input[20];
 char txAR[10];    // = "16:41:34#";
 char txDEC[11];    // = sprintf(txDEC, "+36d%c28:%02d#", 223, int(dec_m), 0);
@@ -61,66 +51,20 @@ char receivedChars[numChars];
 boolean isHomed = false;
 boolean isPositiveDeclination = false;
 
-void initConversion() {
-	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m),
-			int(0));
-	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223,
-			int(dec_m), int(0));
-	/*cos_phi = cos(
-			(((latHH * 3600) + (latMM * 60) + latSS) / 3600.0) * pi / 180.0);
-	sin_phi = sin(
-			(((latHH * 3600) + (latMM * 60) + latSS) / 3600.0) * pi / 180.0);
-
-	TSL = poleAR_HH * 3600 + poleAR_MM * 60 + poleAR_SS + poleH_HH * 3600
-			+ poleH_MM * 60 + poleH_SS;
-	while (TSL >= 86400)
-	 TSL = TSL - 86400;*/
-}
-
-void AZ_to_EQ() {
-	double delta_tel, sin_h, cos_h, sin_A, cos_A, sin_DEC, cos_DEC;
-	double H_telRAD, h_telRAD, A_telRAD;
-	long H_tel;
-	long arHH, arMM, arSS;
-	long decDEG, decMM, decSS;
-	char sDEC_tel;
-
-	float percent_day = ra_deg / 360;
-
-	arHH = percent_day * 24;
-	arMM = (percent_day * 24 - arHH) * 60;
-	arSS = ((percent_day * 24 - arHH) * 60 - arMM) * 60;
-
-	decDEG = dec_deg;
-	decMM = (dec_deg - decDEG) * 60;
-	decSS = ((dec_deg - decDEG) * 60 - decMM) * 60;
-	sDEC_tel = isPositiveDeclination ? 43 : 45; // 45 IS NEGATIVE; also try sDEC_tel = 43;
-
-	//sprintf(txAR, "%02d:%02d:%02d#", int(arHH), int(arMM), int(arSS));
-	//sprintf(txDEC, "%c%02d%c%02d:%02d#", sDEC_tel, int(decDEG), 223, int(decMM),
-	//		int(decSS));
-
-#if defined DEBUG && defined DEBUG_SERIAL
-
-	Serial.println(dec_deg);
-	Serial.println(decDEG);
-	Serial.println(decMM);
-	Serial.println(decSS);
-
-	Serial.println(sDEC_tel);
-
-	Serial.println("DONE");
-	Serial.println(txAR);
-	Serial.println(txDEC);
-#endif
-}
-
 bool newData = false; // Gets set to true whenever a complete command is buffered
 static boolean recvInProgress = false; // True while a command is being received
 static byte ndx = 0; // Number of command character received
 const char startMarker = ':'; // Commands begin with this character
 const char endMarker = '#'; // Commands end with this character
 
+
+
+void initCommunication() {
+	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m),
+			int(0));
+	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223,
+			int(dec_m), int(0));
+}
 
 void receiveCommandChar() {
 
@@ -199,10 +143,6 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 			ra_deg = 360.
 					* (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
 
-			// Set the desired ascension stepper motor position
-			// TODO this is very likely wrong. We need to convert this to altaz
-			//positions[0] = ra_deg / 360 * AZ_STEPS_PER_REV;
-
 			Serial.print("1");
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target DEC
@@ -225,10 +165,6 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 			dec_deg = multi * (deg + mins / 60. + secs / 3600.);
 			isPositiveDeclination = multi > 0;
 
-			// Set the desired altitude stepper motor position
-			// TODO this is very likely wrong. We need to convert this to altaz
-			//positions[1] = dec_deg / 360 * ALT_STEPS_PER_REV;
-
 			Serial.print("1");
 		} else {
 			Serial.println("ERROR: Unknown command");
@@ -239,55 +175,10 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 	return false;
 }
 
-// Returns true if homing is completed
+// Returns true if homing command was sent
 bool communication(MultiStepper &motors, bool homingMode) {
 	receiveCommandChar();
 	return parseCommands(motors, homingMode);
-}
-
-
-void read_sensors(AccelStepper &az, AccelStepper &el) {
-	long h_deg, h_min, h_seg, A_deg, A_min, A_seg;
-
-	encoderValue1 = az.currentPosition() % AZ_STEPS_PER_REV;
-	encoderValue2 = el.currentPosition() % ALT_STEPS_PER_REV;
-
-	int enc1 = encoderValue1 / 1500;
-	long encoder1_temp = encoderValue1 - (enc1 * 1500);
-	long map1 = enc1 * map(1500, 0, AZ_STEPS_PER_REV, 0, 324000);
-	int enc2 = encoderValue2 / 1500;
-	long encoder2_temp = encoderValue2 - (enc2 * 1500);
-	long map2 = enc2 * map(1500, 0, ALT_STEPS_PER_REV, 0, 1296000);
-
-	Alt_tel_s = map1 + map(encoder1_temp, 0, AZ_STEPS_PER_REV, 0, 324000);
-	Az_tel_s = map2 + map(encoder2_temp, 0, ALT_STEPS_PER_REV, 0, 1296000);
-
-	if (Az_tel_s < 0)
-		Az_tel_s = 1296000 + Az_tel_s;
-	if (Az_tel_s >= 1296000)
-		Az_tel_s = Az_tel_s - 1296000;
-
-	/*Serial.print("Values are (az, el): ");
-	Serial.print(encoderValue1);
-	Serial.print(", ");
-	Serial.print(encoderValue2);
-	Serial.print("; alt/az: ");
-	Serial.print(Alt_tel_s);
-	Serial.print(", ");
-	 Serial.println(Az_tel_s);*/
-}
-
-void loopConversion() {
-	t_ciclo = millis();
-	if (t_ciclo_acumulado >= seg_sideral) {
-		TSL++;
-		t_ciclo_acumulado = t_ciclo_acumulado - seg_sideral;
-		if (TSL >= 86400) {
-			TSL = TSL - 86400;
-		}
-	}
-	t_ciclo = millis() - t_ciclo;
-	t_ciclo_acumulado = t_ciclo_acumulado + t_ciclo;
 }
 
 
@@ -333,22 +224,13 @@ float rad2deg(float rad) {
 volatile float rlyaz = 0;
 volatile float rlydec = 0;
 
-// These are variables that are only needed when debug mode is enabled
-//#ifdef DEBUG
 
-// These are variables that require debug mode and serial debug mode to be enabled
-//#ifdef DEBUG_SERIAL
-
-int pr = -1;
+// The last reported positions
 long last_reported_az = 0;
 long last_reported_dec = 0;
 
-//#endif // DEBUG_SERIAL
-//#endif // DEBUG
-
 long last_desired_az = 0;  // Last azimuth (IN STEPS) we desired
 long last_desired_dec = 0; // Last declination (IN STEPS) we desired
-
 
 
 long current_year = 2019;
@@ -473,10 +355,10 @@ bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 			(deg_altitude / 360) * ALT_STEPS_PER_REV);
 
 	if (justHomed || !isHomed) {
-		//Serial.print("Just homed to ");
-		//Serial.print(desired_az);
-		//Serial.print(" / ");
-		//Serial.println(desired_alt);
+		DEBUG_PRINT("Just homed to ");
+		DEBUG_PRINT(desired_az);
+		DEBUG_PRINT(" / ");
+		DEBUG_PRINTLN(desired_alt);
 
 		az_s.setCurrentPosition(desired_az);
 		el_s.setCurrentPosition(desired_alt);
@@ -491,54 +373,48 @@ bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		el_s.runToNewPosition(last_desired_dec - desired_alt);
 
 	// From here on only debug outputs happen
-#if defined DEBUG && defined DEBUG_SERIAL
 		if (last_desired_az - desired_az > 0
-				|| last_desired_dec - desired_alt > 0) { //  pr == -1 || pr >= 10) {
-		Serial.print(
+				|| last_desired_dec - desired_alt > 0) {
+			DEBUG_PRINT(
 				gps.hasFix() ?
 						"GPS: " + String(gps.Satellites, 6) + "S/"
 								+ String(gps.Quality) + "Q" :
 						"GPS: N/A");
-		Serial.print("; LAT ");
-		Serial.print(current_lat);
-		Serial.print(", LNG ");
-		Serial.print(current_lng);
-		Serial.print("; RA ");
-		Serial.print(ra_deg);
-		Serial.print(" and DEC ");
-		Serial.print(dec_deg);
-		Serial.print(" to ALTAZ is: ALT ");
-		Serial.print(deg_altitude);
-		Serial.print("ฐ AZ ");
-		Serial.print(deg_azimuth);
-		Serial.print("ฐ HA ");
-		Serial.print(rad_hour_angle);
-		Serial.print("ฐ sin(HA) ");
-		Serial.print(sin(rad_hour_angle));
-		Serial.print("ANG; The time is: ");
-		Serial.print(current_hour);
-		Serial.print(":");
-		Serial.print(current_minute);
-		Serial.print(":");
-		Serial.print(current_second);
-		Serial.print("Steppers: az");
-		Serial.print(desired_az);
-		Serial.print("/dec ");
-		Serial.print(desired_alt);
-		Serial.print(" diff ");
-		Serial.print(last_desired_az - desired_az);
-		Serial.print(" / ");
-		Serial.print(last_desired_dec - desired_alt);
-		Serial.print("ฐ; Reported: az");
-		Serial.print(az_s.currentPosition());
-		Serial.print("/dec ");
-		Serial.print(el_s.currentPosition());
-
-
-		//	pr = 0;
+			DEBUG_PRINT("; LAT ");
+			DEBUG_PRINT(current_lat);
+			DEBUG_PRINT(", LNG ");
+			DEBUG_PRINT(current_lng);
+			DEBUG_PRINT("; RA ");
+			DEBUG_PRINT(ra_deg);
+			DEBUG_PRINT(" and DEC ");
+			DEBUG_PRINT(dec_deg);
+			DEBUG_PRINT(" to ALTAZ is: ALT ");
+			DEBUG_PRINT(deg_altitude);
+			DEBUG_PRINT("ฐ AZ ");
+			DEBUG_PRINT(deg_azimuth);
+			DEBUG_PRINT("ฐ HA ");
+			DEBUG_PRINT(rad_hour_angle);
+			DEBUG_PRINT("ฐ sin(HA) ");
+			DEBUG_PRINT(sin(rad_hour_angle));
+			DEBUG_PRINT("ANG; The time is: ");
+			DEBUG_PRINT(current_hour);
+			DEBUG_PRINT(":");
+			DEBUG_PRINT(current_minute);
+			DEBUG_PRINT(":");
+			DEBUG_PRINT(current_second);
+			DEBUG_PRINT("Steppers: az");
+			DEBUG_PRINT(desired_az);
+			DEBUG_PRINT("/dec ");
+			DEBUG_PRINT(desired_alt);
+			DEBUG_PRINT(" diff ");
+			DEBUG_PRINT(last_desired_az - desired_az);
+			DEBUG_PRINT(" / ");
+			DEBUG_PRINT(last_desired_dec - desired_alt);
+			DEBUG_PRINT("ฐ; Reported: az");
+			DEBUG_PRINT(az_s.currentPosition());
+			DEBUG_PRINT("/dec ");
+			DEBUG_PRINT(el_s.currentPosition());
 		}
-		//pr++;
-#endif
 	}
 
 	if (last_desired_az - desired_az > 0

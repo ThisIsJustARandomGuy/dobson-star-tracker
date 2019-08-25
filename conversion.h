@@ -16,13 +16,10 @@
 
 #include "location.h"
 
-void initConversion();
-void loopConversion();
-void AZ_to_EQ();
+void initCommunication();
 bool parseCommands(MultiStepper &motors, bool homingMode);
 void receiveCommandChar();
 bool communication(MultiStepper &motors, bool homingMode);
-void read_sensors(AccelStepper &az, AccelStepper &el);
 
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);

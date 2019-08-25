@@ -1,11 +1,12 @@
-#include <Arduino.h>
 #include <AccelStepper.h>
+#include <Arduino.h>
+#include <FuGPS.h>
+#include <HardwareSerial.h>
 #include <MultiStepper.h>
 
-#include "./config.h"
-#include "./location.h"
-
-#include "./conversion.h"
+#include "config.h"
+#include "conversion.h"
+#include "location.h"
 
 
 AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN);
@@ -19,9 +20,13 @@ byte operating_mode = OPMODE_INITIALIZING;
 
 MultiStepper axes;
 
-//Moon dummyMoon;
+bool motorsEnabled = false; // True when steppers are enabled
 
-
+#ifdef DEBUG_HOME_IMMEDIATELY
+	const bool homeImmediately = true;
+#else
+const bool homeImmediately = false;
+#endif
 
 void setupSteppers() {
 	// Set stepper pins
@@ -39,109 +44,110 @@ void setupSteppers() {
 	axes.addStepper(azimuth);
 	axes.addStepper(elevation);
 
-	// Check for debug constants and enable the stepper drivers
 #ifdef AZ_ENABLE
-	//digitalWrite(AZ_ENABLE_PIN, LOW); // Enable azimuth stepper
-#endif
-#ifdef ALT_ENABLE
-	//digitalWrite(ALT_ENABLE_PIN, LOW); // Enable altitude stepper
-#endif
-
-#ifdef DEBUG_SERIAL
-#ifdef AZ_ENABLE
-	Serial.println("DBG Az  ON");
+	DEBUG_PRINTLN("DBG Az  ON");
 #else
-	Serial.println("DBG Az  OFF");
+	DEBUG_PRINTLN("DBG Az  OFF");
 #endif
 
 #ifdef ALT_ENABLE
-	Serial.println("DBG Alt ON");
+	DEBUG_PRINTLN("DBG Alt ON");
 #else
-	Serial.println("DBG Alt OFF");
+	DEBUG_PRINTLN("DBG Alt OFF");
 #endif
-#endif
-}
+} // setupSteppers
 
-bool motorsEnabled = false;
+// This function turns stepper motor drivers on/off
 void handleSteppersOnOff() {
-	if (digitalRead(STEPPERS_ON_PIN) == HIGH) {
-		//Serial.println("BTN ON");
-		//if (!motorsEnabled) {
-		//Serial.println("switching ON");
-		//motorsEnabled = true;
-			// Motors ON
-			digitalWrite(AZ_ENABLE_PIN, LOW);
-			digitalWrite(ALT_ENABLE_PIN, LOW);
-		//}
+	const bool steppersSwitchOn = digitalRead(STEPPERS_ON_PIN) == HIGH;
+	const bool isHoming = operating_mode == OPMODE_HOMING;
+
+	if (steppersSwitchOn && !isHoming) {
+		// Motors on
+		motorsEnabled = true;
+#ifdef AZ_ENABLE
+		digitalWrite(AZ_ENABLE_PIN, LOW);
+#endif
+#ifdef ALT_ENABLE
+		digitalWrite(ALT_ENABLE_PIN, LOW);
+#endif
 	} else {
-		//if (motorsEnabled) {
-		//Serial.println("switching OFF");
-		//motorsEnabled = false;
-			// Motors OFF
-			digitalWrite(AZ_ENABLE_PIN, HIGH);
-			digitalWrite(ALT_ENABLE_PIN, HIGH);
-		//}
+		// Motors OFF
+		motorsEnabled = false;
+#ifdef AZ_ENABLE
+		digitalWrite(AZ_ENABLE_PIN, HIGH);
+#endif
+#ifdef ALT_ENABLE
+		digitalWrite(ALT_ENABLE_PIN, HIGH);
+#endif
 	}
 }
 
 
-FuGPS gps(Serial1);
+// TODO Config and wrap in ifdef
+FuGPS gps(Serial1); // GPS module
 
 void setup() {
 	Serial.begin(115200);
+
+	// This initializes the GPS module
+	// TODO Wrap in ifdef
 	initGPS (gps);
-	//return; // TODO remove
 
 	// This sets up communication and conversion values
-	initConversion();
+	initCommunication();
+
 
 	setupSteppers();
 
 	pinMode(STEPPERS_ON_PIN, INPUT);
 
-	// Set the telescope to homing mode (see above for what it does)
+	// Set the telescope to homing mode (see README for what it does)
 	operating_mode = OPMODE_HOMING;
 }
 
 
-unsigned int calc = 0;
 
+unsigned int calc = 0;
 void loop() {
+	// Get the current position from our GPS module. If no GPS is installed
+	// or no fix is available values from EEPROM are used
 	Position pos = handleGPS(gps);
-	//return;
-	//loopConversion();
-	//read_sensors(azimuth, elevation);
-	handleSteppersOnOff();
-	bool justHomed = communication(axes, operating_mode == OPMODE_HOMING);
-	if (justHomed)
-		operating_mode = OPMODE_TRACKING;
-#ifdef DEBUG_SERIAL
-	// In Serial debug mode we always home first thing
-	if (calc == 0) {
-		Serial.println("Set home");
+
+	bool requiresHoming = operating_mode == OPMODE_HOMING;
+	// Handle serial serial communication. Returns true if homing was just performed
+	bool justHomed = communication(axes, requiresHoming);
+
+	// If DEBUG_HOME_IMMEDIATELY is defined, homing is performed on first loop iteration.
+	// Otherwise a serial command or BUTTON_HOME are required
+	if (justHomed || (homeImmediately && calc == 0)) {
+		DEBUG_PRINTLN("Set home");
+
 		justHomed = true;
 		operating_mode = OPMODE_TRACKING;
 	}
-#endif
 
-	//delay(100);
+	// Turn the stepper motors on or off, depending on state of STEPPERS_ON_PIN
+	handleSteppersOnOff();
+
+	// Every 10.000 loop iterations we handle motor movements. This should be dynamic. based on how long calculations/serial comms took
 	if (calc >= 10000 || calc == 0) {
+		calc = 0;
+
 #if defined DEBUG && defined DEBUG_SERIAL
 		long micros_start = micros();
 #endif
-		//AZ_to_EQ();
-		//delay(1000);
+		// This function converts the coordinates and sends motor move commands
 		bool didMove = EQ_to_AZ(axes, azimuth, elevation, gps, pos, justHomed);
 
-#if defined DEBUG && defined DEBUG_SERIAL
+#if defined DEBUG
 		if (didMove) {
-		long calc_time = micros() - micros_start;
-		Serial.print("; Move took ");
-		Serial.print(calc_time / 1000.);
-		Serial.println("ms");
+			long calc_time = micros() - micros_start;
+			DEBUG_PRINT("; Move took ");
+			DEBUG_PRINT(calc_time / 1000.);
+			DEBUG_PRINTLN("ms");
 		}
 #endif
-		calc = 0;
 	}
 
 	calc++;
