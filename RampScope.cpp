@@ -1,5 +1,6 @@
 #include <AccelStepper.h>
 #include <Arduino.h>
+#include <TimerOne.h>
 #include <FuGPS.h>
 #include <HardwareSerial.h>
 #include <MultiStepper.h>
@@ -28,6 +29,15 @@ bool motorsEnabled = false; // True when steppers are enabled
 const bool homeImmediately = false;
 #endif
 
+/**
+ * This is attached to timer interrupt 1. It gets called every STEPPER_INTERRUPT_FREQ / 1.000.000 seconds and moves our steppers
+ */
+void moveSteppers() {
+	//DEBUG_PRINTLN_V("Interrupt called");
+	azimuth.run();
+	elevation.run();
+} // moveSteppers
+
 void setupSteppers() {
 	// Set stepper pins
 	pinMode(AZ_ENABLE_PIN, OUTPUT);  // Azimuth pin
@@ -43,6 +53,9 @@ void setupSteppers() {
 
 	axes.addStepper(azimuth);
 	axes.addStepper(elevation);
+
+	Timer1.initialize(STEPPER_INTERRUPT_FREQ);
+	Timer1.attachInterrupt(&moveSteppers);
 
 #ifdef AZ_ENABLE
 	DEBUG_PRINTLN("DBG Az  ON");

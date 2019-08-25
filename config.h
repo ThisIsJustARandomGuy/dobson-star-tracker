@@ -1,6 +1,8 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+#define STEPPER_INTERRUPT_FREQ 100   // Unit is microseconds; 1.000.000 is one second
+
 /*
  * Azimuth Stepper
  * This is the stepper that rotates the mount horizontally
@@ -43,7 +45,7 @@
 //#define DEBUG_GPS
 
 // If this is uncommented the telescope assumes that it is homed on startup to whatever position is set in conversion.cpp
-//#define DEBUG_HOME_IMMEDIATELY
+#define DEBUG_HOME_IMMEDIATELY
 
 //#define DEBUG_DISABLE_ALL_STEPPERS     // Uncomment this to disable ALL stepper drivers
 //#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor

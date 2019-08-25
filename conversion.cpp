@@ -366,10 +366,10 @@ bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		last_desired_dec = desired_alt;
 		isHomed = true;
 	} else {
-		az_s.setCurrentPosition(0);
-		el_s.setCurrentPosition(0);
-		az_s.runToNewPosition(last_desired_az - desired_az);
-		el_s.runToNewPosition(last_desired_dec - desired_alt);
+		az_s.moveTo(desired_az);
+		el_s.moveTo(desired_alt);
+		//az_s.runToNewPosition(last_desired_az - desired_az);
+		//el_s.runToNewPosition(last_desired_dec - desired_alt);
 
 		// From here on only debug outputs happen
 		if (last_desired_az - desired_az > 0
