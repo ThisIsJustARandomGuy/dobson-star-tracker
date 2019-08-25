@@ -101,7 +101,11 @@ void handleSteppersOnOff() {
 FuGPS gps(Serial1); // GPS module
 
 void setup() {
-	Serial.begin(115200);
+#ifdef DEBUG
+	Serial.begin(9600);
+#else
+	Serial.begin(9600);
+#endif
 
 	// This initializes the GPS module
 	// TODO Wrap in ifdef
@@ -159,7 +163,7 @@ void loop() {
 		// This function converts the coordinates and sends motor move commands
 		bool didMove = EQ_to_AZ(axes, azimuth, elevation, gps, pos, justHomed);
 
-#if defined DEBUG
+#if defined DEBUG && defined DEBUG_SERIAL
 		if (didMove) {
 			long calc_time = micros() - micros_start;
 			DEBUG_PRINT("; Move took ");

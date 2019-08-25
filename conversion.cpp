@@ -37,12 +37,7 @@ bool newData = false; // Gets set to true whenever a complete command is buffere
 static boolean recvInProgress = false; // True while a command is being received
 static byte ndx = 0; // Number of command character received
 const char startMarker = ':'; // Commands begin with this character
-#ifndef SERIAL_DEBUG
 const char endMarker = '#'; // Commands end with this character
-#else
-const char endMarker = '\n'; // Commands end with this character
-#endif
-
 
 const double pi = 3.14159265358979324;
 
@@ -61,6 +56,8 @@ void receiveCommandChar() {
 		rc = Serial.read();
 
 		if (recvInProgress == true) {
+			//Serial.print("ReceivedChar: ");
+			//Serial.println(rc);
 			if (rc != endMarker) {
 				receivedChars[ndx] = rc;
 				ndx++;
@@ -68,12 +65,14 @@ void receiveCommandChar() {
 					ndx = numChars - 1;
 				}
 			} else {
+				//Serial.println("Got end marker");
 				receivedChars[ndx] = '\0'; // terminate the string
 				recvInProgress = false;
 				ndx = 0;
 				newData = true;
 			}
 		} else if (rc == startMarker) {
+			//Serial.println("Got start marker");
 			recvInProgress = true;
 		}
 	}

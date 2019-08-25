@@ -36,10 +36,10 @@
  */
 
 // Uncomment the following line to enable various debug features that would otherwise not get compiled into the firmware
-#define DEBUG
+//#define DEBUG
 
 // Uncomment the following line to enable sending debug statements via the serial port
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS
