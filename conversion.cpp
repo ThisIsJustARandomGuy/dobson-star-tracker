@@ -92,6 +92,11 @@ long positions[2];
 #define SERIAL_CMD_SET_RIGHT_ASCENSION 4
 #define SERIAL_CMD_SET_DECLINATION     5
 
+float debugPositions[][2] = { { 16.7, 36.5 }, { 16.7, 35.5 },
+		{ 16.7, 37.5 }, {
+		15.7, 36.5 }, { 14.7, 36.5 }, { 17.7, 36.5 }, { 18.7, 36.5 }, { 19.7,
+		36.5 }, { 17.7, 38.5 }, { 17.7, 39.5 } };
+const int maxDebugPos = 9;
 
 /**
  * This gets called whenever
@@ -119,6 +124,10 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 				newData = false;
 				return true;
 			} else {
+				// :Sr,16:41:00#
+				// :Sr,15:41:00#
+				// :Sd,+36:28:00#
+				// :Sd,+16:30:00#
 				// Otherwise send a move command to the motors.
 				// This will move both motors such that they end their moves at the same time
 				// motors.moveTo(positions);
@@ -165,6 +174,71 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 			isPositiveDeclination = multi > 0;
 
 			Serial.print("1");
+		} else if (receivedChars[0] == 'D' && receivedChars[1] == 'B'
+				&& receivedChars[2] == 'G') {
+			// DEBUG messages
+			if (receivedChars[3] == 'M') {
+				if (receivedChars[4] == 'I' || receivedChars[4] == 'D') {
+					// Increase or Decrease Azimuth or Declination
+					int add = receivedChars[4] == 'I' ? 1 : -1;
+					if (receivedChars[5] == 'A') {
+						// DBGMAXXX Move Azimuth to XXX
+						ra_deg += add;
+						Serial.println(
+								add > 0 ?
+										"Add 1deg ascension" :
+										"Sub 1 deg ascension");
+					} else if (receivedChars[5] == 'D') {
+						// DBGMD[+/-]XX Move Declination to +/-XX
+						dec_deg += add;
+						Serial.println(
+								add > 0 ?
+										"Add 1deg declination" :
+										"Sub 1 deg declination");
+					}
+				} else {
+				// Debug move to position stored in debugPositions[targetIndex]
+				int targetIndex = receivedChars[4] - '0';
+				if (targetIndex > maxDebugPos) {
+					Serial.println("Invalid index");
+				} else {
+					Serial.println("Moving from ALT / DEC");
+					Serial.println(ra_deg);
+					Serial.println(dec_deg);
+					Serial.println("Moving to ALT / DEC");
+					Serial.println(debugPositions[targetIndex][0] * 15);
+					Serial.println(debugPositions[targetIndex][1]);
+					ra_deg = debugPositions[targetIndex][0] * 15;
+					dec_deg = debugPositions[targetIndex][1];
+				}
+				}
+			} else if (receivedChars[3] == 'D' && receivedChars[4] == 'M') {
+				// Disable Motors and Pause for X seconds
+				digitalWrite(ALT_ENABLE_PIN, HIGH);
+				digitalWrite(AZ_ENABLE_PIN, HIGH);
+				Serial.print("Disabling motors for: ");
+				Serial.println((receivedChars[5] - '0') * 1000);
+				delay((receivedChars[5] - '0') * 1000);
+				Serial.println("Continuing");
+				digitalWrite(ALT_ENABLE_PIN, LOW);
+				digitalWrite(AZ_ENABLE_PIN, LOW);
+			}
+		} else if (receivedChars[0] == 'H' && receivedChars[1] == 'L'
+				&& receivedChars[2] == 'P') {
+			Serial.println(":HLP# Print available Commands");
+			Serial.println(":GR# Get Right Ascension");
+			Serial.println(":GD# Get Declination");
+			Serial.println(
+					":Sr,HH:MM:SS# Set Right Ascension; Example: :Sr,12:34:56#");
+			Serial.println(
+					":Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#");
+			Serial.println(":MS# Start Move");
+			Serial.println(":DBGM[0-5]# Move to debug position X");
+			Serial.println(":DBGMIA# Increase Ascension by 1 degree");
+			Serial.println(":DBGMDA# Decrease Ascension by 1 degree");
+			Serial.println(":DBGMID# Increase Declination by 1 degree");
+			Serial.println(":DBGMDD# Decrease Declination by 1 degree");
+			Serial.println(":DBGDM[0-9]# Disable Motors for X seconds");
 		} else {
 			Serial.println("ERROR: Unknown command");
 			Serial.println(receivedChars);
