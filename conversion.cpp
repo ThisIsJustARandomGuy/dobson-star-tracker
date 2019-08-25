@@ -13,15 +13,6 @@
 #include "./conversion.h"
 #include "./location.h"
 
-// enter Pole Star right ascention (AR: HH:MM:SS)
-int poleAR_HH = 2;    // this means 2 hours, 52 minutes and 16 seconds
-int poleAR_MM = 57;
-int poleAR_SS = 06;
-
-// enter Pole Star hour angle (H: HH:MM:SS)
-int poleH_HH = 89;
-int poleH_MM = 20;
-int poleH_SS = 50;
 
 // DESIRED COORDINATES. THIS IS IMPORTANT
 float ra_h = 16;
@@ -32,32 +23,28 @@ float dec_d = 36;
 float dec_m = 28;
 float dec_deg = dec_d + dec_m / 60;
 
+boolean isPositiveDeclination = false;
 
-const double pi = 3.14159265358979324;
-char input[20];
-char txAR[10];    // = "16:41:34#";
-char txDEC[11];    // = sprintf(txDEC, "+36d%c28:%02d#", 223, int(dec_m), 0);
-long TSL;
-unsigned long t_ciclo_acumulado = 0, t_ciclo;
-long Az_tel_s, Alt_tel_s;
-long AR_tel_s, DEC_tel_s;
-long AR_stell_s, DEC_stell_s;
-double cos_phi, sin_phi;
-double alt, azi;
+boolean isHomed = false;
+
+char txAR[10]; // Gets reported to stellarium when it asks for right ascension "16:41:34#";
+char txDEC[11]; // Same as above with declination. sprintf(txDEC, "+36d%c28:%02d#", 223, int(dec_m), 0);
 
 const byte numChars = 32;
 char receivedChars[numChars];
-
-boolean isHomed = false;
-boolean isPositiveDeclination = false;
 
 bool newData = false; // Gets set to true whenever a complete command is buffered
 static boolean recvInProgress = false; // True while a command is being received
 static byte ndx = 0; // Number of command character received
 const char startMarker = ':'; // Commands begin with this character
+#ifndef SERIAL_DEBUG
 const char endMarker = '#'; // Commands end with this character
+#else
+const char endMarker = '\n'; // Commands end with this character
+#endif
 
 
+const double pi = 3.14159265358979324;
 
 void initCommunication() {
 	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m),
@@ -140,8 +127,8 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 
 			// This is our ultimate target value
 			last_ra_deg = ra_deg;
-			ra_deg = 360.
-					* (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
+			//ra_deg = 360. * (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
+			ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
 
 			Serial.print("1");
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
@@ -162,7 +149,8 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 
 			last_dec_deg = dec_deg;
 
-			dec_deg = multi * (deg + mins / 60. + secs / 3600.);
+			//dec_deg = multi * (deg + mins / 60. + secs / 3600.);
+			dec_deg = (multi * deg) + mins / 60. + secs / 3600.;
 			isPositiveDeclination = multi > 0;
 
 			Serial.print("1");
@@ -372,13 +360,15 @@ bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 		az_s.runToNewPosition(last_desired_az - desired_az);
 		el_s.runToNewPosition(last_desired_dec - desired_alt);
 
-	// From here on only debug outputs happen
+		// From here on only debug outputs happen
 		if (last_desired_az - desired_az > 0
 				|| last_desired_dec - desired_alt > 0) {
-			DEBUG_PRINT(
-				gps.hasFix() ?
+			DEBUG_PRINT_V(
+					gps.hasFix() ?
 						"GPS: " + String(gps.Satellites, 6) + "S/"
-								+ String(gps.Quality) + "Q" :
+									+ String(gps.Quality) + "Q "
+									+ String(gps.Latitude, 6) + "LAT / "
+									+ String(gps.Longitude, 6) + "LNG" :
 						"GPS: N/A");
 			DEBUG_PRINT("; LAT ");
 			DEBUG_PRINT(current_lat);

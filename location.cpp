@@ -87,12 +87,7 @@ Position& initGPS(FuGPS &fuGPS) {
 }
 
 Position& handleGPS(FuGPS &fuGPS) {
-	/*while (Serial1.available() > 0) {
-		// get the byte data from the GPS
-		byte gpsData = Serial1.read();
-		Serial.write(gpsData);
-	}
-	 return;*/
+
 	if (fuGPS.read()) {
 		// We don't know, which message was came first (GGA or RMC).
 		// Thats why some fields may be empty.

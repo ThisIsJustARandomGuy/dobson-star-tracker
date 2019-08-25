@@ -101,6 +101,7 @@ void setup() {
 	setupSteppers();
 
 	pinMode(STEPPERS_ON_PIN, INPUT);
+	pinMode(HOME_NOW_PIN, INPUT);
 
 	// Set the telescope to homing mode (see README for what it does)
 	operating_mode = OPMODE_HOMING;
@@ -110,6 +111,11 @@ void setup() {
 
 unsigned int calc = 0;
 void loop() {
+	const bool homeNow = digitalRead(HOME_NOW_PIN) == HIGH;
+
+	if (homeNow) {
+		operating_mode = OPMODE_HOMING;
+	}
 	// Get the current position from our GPS module. If no GPS is installed
 	// or no fix is available values from EEPROM are used
 	Position pos = handleGPS(gps);
@@ -120,7 +126,7 @@ void loop() {
 
 	// If DEBUG_HOME_IMMEDIATELY is defined, homing is performed on first loop iteration.
 	// Otherwise a serial command or BUTTON_HOME are required
-	if (justHomed || (homeImmediately && calc == 0)) {
+	if (justHomed || homeNow || (homeImmediately && calc == 0)) {
 		DEBUG_PRINTLN("Set home");
 
 		justHomed = true;

@@ -24,6 +24,7 @@
 #define ALT_MAX_SPEED       20000  // Maximum speed for the altitude stepper
 
 #define STEPPERS_ON_PIN    34 // RAMPS Q_DIR_PIN. If this pin is HIGH, the steppers are turned on
+#define HOME_NOW_PIN       36 // RAMPS Q_STEP_PIN. If this pin is HIGH, homing is performed
 /**
  * ----------------
  * Debug section
@@ -92,9 +93,25 @@ const short TIME_FACTOR = 1;
  * Debug macros. These can be ignored
  */
 #if defined DEBUG && defined DEBUG_SERIAL
-#define DEBUG_PRINTLN(x)  Serial.print(x)
 #define DEBUG_PRINT(x)    Serial.print(x)
-#define DEBUG_VERBOSE_PRINT(x)   \
+#define DEBUG_PRINTLN(x)  Serial.println(x)
+#define DEBUG_PRINT_V(x)   \
+		   Serial.print(millis());\
+		   Serial.print(": ");     \
+		   Serial.print(__FILE__);  \
+		   Serial.print(':');        \
+		   Serial.print(__LINE__);    \
+		   Serial.print(' ');          \
+		   Serial.print(x);
+#define DEBUG_PRINTLN_V(x)   \
+		   Serial.print(millis());\
+		   Serial.print(": ");     \
+		   Serial.print(__FILE__);  \
+		   Serial.print(':');        \
+		   Serial.print(__LINE__);    \
+		   Serial.print(' ');          \
+		   Serial.println(x);
+#define DEBUG_PRINT_VV(x)   \
 		   Serial.print(millis());\
 		   Serial.print(": ");     \
 		   Serial.print(__PRETTY_FUNCTION__); \
@@ -103,8 +120,8 @@ const short TIME_FACTOR = 1;
 		   Serial.print(':');          \
 		   Serial.print(__LINE__);      \
 		   Serial.print(' ');            \
-		   Serial.print(str);
-#define DEBUG_VERBOSE_PRINTLN(x) \
+		   Serial.print(x);
+#define DEBUG_PRINTLN_VV(x) \
 		   Serial.print(millis());\
 		   Serial.print(": ");     \
 		   Serial.print(__PRETTY_FUNCTION__); \
@@ -113,12 +130,14 @@ const short TIME_FACTOR = 1;
 		   Serial.print(':');          \
 		   Serial.print(__LINE__);      \
 		   Serial.print(' ');            \
-		   Serial.println(str);
+		   Serial.println(x);
 #else
-#define DEBUG_PRINTLN(x)
 #define DEBUG_PRINT(x)
-#define DEBUG_VERBOSE_PRINT(x)
-#define DEBUG_VERBOSE_PRINTLN(x)
+#define DEBUG_PRINT_V(x)
+#define DEBUG_PRINT_VV(x)
+#define DEBUG_PRINTLN(x)
+#define DEBUG_PRINTLN_V(x)
+#define DEBUG_PRINTLN_VV(x)
 #endif
 
 #endif /* CONFIG_H_ */
