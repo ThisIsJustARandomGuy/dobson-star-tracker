@@ -84,20 +84,31 @@ float last_dec_deg = dec_deg;
 
 long positions[2];
 
+#define SERIAL_CMD_INVALID_COMMAND     -1
+#define SERIAL_CMD_GET_RIGHT_ASCENSION 0
+#define SERIAL_CMD_GET_DECLINATION     1
+#define SERIAL_CMD_MOVE_STOP           2
+#define SERIAL_CMD_MOVE_START          3
+#define SERIAL_CMD_SET_RIGHT_ASCENSION 4
+#define SERIAL_CMD_SET_DECLINATION     5
+
+
 /**
  * This gets called whenever
  */
 bool parseCommands(MultiStepper &motors, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
+			// GR: Get Right Ascension
 			Serial.print(txAR);
 		} else if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
+			// GD: Get Declination
 			Serial.print(txDEC);
 		} else if (receivedChars[0] == 'Q') {
 			// Stop moving
-
+			// TODO Implement this
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
-			// Move Start
+			// MS: Move Start
 			Serial.print("0");
 
 			// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
