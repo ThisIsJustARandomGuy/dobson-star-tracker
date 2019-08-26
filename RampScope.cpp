@@ -117,6 +117,7 @@ void setup() {
 
 	setupSteppers();
 
+	// Button pins
 	pinMode(STEPPERS_ON_PIN, INPUT);
 	pinMode(HOME_NOW_PIN, INPUT);
 
@@ -128,32 +129,38 @@ void setup() {
 
 unsigned int calc = 0;
 void loop() {
+	// If the HOME button is pressed/switched on start homing mode
 	const bool homeNow = digitalRead(HOME_NOW_PIN) == HIGH;
 
 	if (homeNow) {
 		operating_mode = OPMODE_HOMING;
 	}
+
 	// Get the current position from our GPS module. If no GPS is installed
 	// or no fix is available values from EEPROM are used
 	Position pos = handleGPS(gps);
 
+	// Homing needs to be performed in HOMING mode
 	bool requiresHoming = operating_mode == OPMODE_HOMING;
+
 	// Handle serial serial communication. Returns true if homing was just performed
 	bool justHomed = communication(axes, requiresHoming);
 
 	// If DEBUG_HOME_IMMEDIATELY is defined, homing is performed on first loop iteration.
-	// Otherwise a serial command or BUTTON_HOME are required
+	// Otherwise a serial command or HOME_NOW Button are required
 	if (justHomed || homeNow || (homeImmediately && calc == 0)) {
 		DEBUG_PRINTLN("Set home");
 
 		justHomed = true;
+
+		// Start tracking after homing
 		operating_mode = OPMODE_TRACKING;
 	}
 
 	// Turn the stepper motors on or off, depending on state of STEPPERS_ON_PIN
 	handleSteppersOnOff();
 
-	// Every 10.000 loop iterations we handle motor movements. This should be dynamic. based on how long calculations/serial comms took
+	// Every 10.000 loop iterations we handle motor movements. This should be dynamic, based on how long calculations/serial comms took
 	if (calc >= 10000 || calc == 0) {
 		calc = 0;
 

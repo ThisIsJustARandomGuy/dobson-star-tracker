@@ -97,6 +97,11 @@ float debugPositions[][2] = { { 16.7, 36.5 }, { 16.7, 35.5 },
 		36.5 }, { 17.7, 38.5 }, { 17.7, 39.5 } };
 const int maxDebugPos = 9;
 
+// This Macro converts a character to an integer
+#define char_to_int(x) (x - '0')
+// This Macro converts two characters to an integer. Example: ctoi10('2', '3') => 23
+#define multi_char_to_int(x, y) ((x - '0') * 10 + (y - '0'))
+
 /**
  * This gets called whenever
  */
@@ -135,11 +140,9 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 			// Set Right Ascension (in hours, minutes and seconds)
 
 			// Parse the coordinates part of the command to integers
-			int hrs = (receivedChars[3] - '0') * 10 + (receivedChars[4] - '0');
-			int mins = (receivedChars[6] - '0') * 10
-					+ (receivedChars[7] - '0');
-			int secs = (receivedChars[9] - '0') * 10
-					+ (receivedChars[10] - '0');
+			int hrs = multi_char_to_int(receivedChars[3], receivedChars[4]);
+			int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
+			int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
 
 			// This is what we return to Stellarium when it asks for the current right ascension
 			sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
@@ -155,16 +158,12 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 
 			int multi = (receivedChars[3] == '+') ? 1 : -1; // TODO bool may be more memory efficient
 
-			int deg = ((receivedChars[4] - '0') * 10 + (receivedChars[5] - '0'));
+			int deg = multi_char_to_int(receivedChars[4], receivedChars[5]);
+			int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
+			int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
 
-			long mins = (receivedChars[7] - '0') * 10
-					+ (receivedChars[8] - '0');
-			
-			long secs = (receivedChars[10] - '0') * 10
-					+ (receivedChars[11] - '0');
-
-			sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], int(deg),
-					223, int(mins), int(secs));
+			sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], deg, 223,
+					mins, secs);
 
 			last_dec_deg = dec_deg;
 
@@ -185,19 +184,19 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 						ra_deg += add;
 						Serial.println(
 								add > 0 ?
-										"Add 1deg ascension" :
+										"Add 1 deg ascension" :
 										"Sub 1 deg ascension");
 					} else if (receivedChars[5] == 'D') {
 						// DBGMD[+/-]XX Move Declination to +/-XX
 						dec_deg += add;
 						Serial.println(
 								add > 0 ?
-										"Add 1deg declination" :
+										"Add 1 deg declination" :
 										"Sub 1 deg declination");
 					}
 				} else {
 				// Debug move to position stored in debugPositions[targetIndex]
-				int targetIndex = receivedChars[4] - '0';
+					int targetIndex = char_to_int(receivedChars[4]);
 				if (targetIndex > maxDebugPos) {
 					Serial.println("Invalid index");
 				} else {

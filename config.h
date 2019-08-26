@@ -25,8 +25,13 @@
 #define ALT_MAX_ACCEL       400 // Maximum acceleration for the altitude stepper
 #define ALT_MAX_SPEED       10000  // Maximum speed for the altitude stepper
 
+/*
+ * Buttons
+ */
 #define STEPPERS_ON_PIN    34 // RAMPS Q_DIR_PIN. If this pin is HIGH, the steppers are turned on
 #define HOME_NOW_PIN       36 // RAMPS Q_STEP_PIN. If this pin is HIGH, homing is performed
+
+
 /**
  * ----------------
  * Debug section
