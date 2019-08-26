@@ -10,18 +10,47 @@
 #include "location.h"
 
 
-AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN);
-AccelStepper elevation(AccelStepper::DRIVER, ALT_STEP_PIN, ALT_DIR_PIN);
+AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN); // Azimuth stepper
+AccelStepper altitude(AccelStepper::DRIVER, ALT_STEP_PIN, ALT_DIR_PIN); // Altitude stepper
+MultiStepper axes;  // This holds both our axes
+FuGPS gps(Serial1); // GPS module
 
-#define OPMODE_INITIALIZING 0
+// OPMODE_INITIALIZING
+// This is only on when initializing critical hardware such as the stepper drivers.
+// When this mode is active, you can not rely on any value reported by the telescope (stepper pos, GPS pos, desired pos etc.)
+//
+// Motors are on: YES
+// Tracking active: NO
+// Desired/Reported stepper position updates: YES
+#define OPMODE_INITIALIZING 0 // Motors off; Tracking NOT active; Desired/Reported stepper position NOT ACCURATE
+
+// OPMODE_HOMING
+// While this mode is on, the telescope stands still and assumes that it is correctly pointing at the desired position
+//
+// Motors are on: YES
+// Tracking active: NO
+// Desired/Reported stepper position updates: YES
 #define OPMODE_HOMING 1
-#define OPMODE_TRACKING 2
 
+// OPMODE_TRACKING
+// While this mode is on, the telescope tracks the desired position
+//
+// Motors are on: YES
+// Tracking active: YES
+// Desired/Reported stepper position updates: YES
+
+#define OPMODE_TRACKING 2 // Motors on; Tracking IS active; Desired/Reported stepper position DOES update
+
+
+// Start with OPMODE_INITIALIZING
 byte operating_mode = OPMODE_INITIALIZING;
 
-MultiStepper axes;
 
-bool motorsEnabled = false; // True when steppers are enabled
+// Stores whether stepper drivers are enabled
+bool motorsEnabled = false;
+
+// This increases every loop iteration and gets reset at 10.000
+unsigned int loopIteration = 0;
 
 #ifdef DEBUG_HOME_IMMEDIATELY
 	const bool homeImmediately = true;
@@ -29,15 +58,18 @@ bool motorsEnabled = false; // True when steppers are enabled
 const bool homeImmediately = false;
 #endif
 
+
 /**
  * This is attached to timer interrupt 1. It gets called every STEPPER_INTERRUPT_FREQ / 1.000.000 seconds and moves our steppers
  */
 void moveSteppers() {
-	//DEBUG_PRINTLN_V("Interrupt called");
 	azimuth.run();
-	elevation.run();
+	altitude.run();
 } // moveSteppers
 
+/**
+ * Initialize stepper drivers. Sets pin inversion config, max speed and acceleration per stepper
+ */
 void setupSteppers() {
 	// Set stepper pins
 	pinMode(AZ_ENABLE_PIN, OUTPUT);  // Azimuth pin
@@ -47,12 +79,12 @@ void setupSteppers() {
 	azimuth.setMaxSpeed(AZ_MAX_SPEED);
 	azimuth.setAcceleration(AZ_MAX_ACCEL);
 
-	elevation.setPinsInverted(true, false, false);
-	elevation.setMaxSpeed(ALT_MAX_SPEED);
-	elevation.setAcceleration(ALT_MAX_ACCEL);
+	altitude.setPinsInverted(true, false, false);
+	altitude.setMaxSpeed(ALT_MAX_SPEED);
+	altitude.setAcceleration(ALT_MAX_ACCEL);
 
 	axes.addStepper(azimuth);
-	axes.addStepper(elevation);
+	axes.addStepper(altitude);
 
 	Timer1.initialize(STEPPER_INTERRUPT_FREQ);
 	Timer1.attachInterrupt(&moveSteppers);
@@ -70,8 +102,14 @@ void setupSteppers() {
 #endif
 } // setupSteppers
 
-// This function turns stepper motor drivers on/off
-void handleSteppersOnOff() {
+
+/*
+ * This function turns stepper motor drivers on, if these conditions are met
+ * STEPPERS_ON_PIN reads HIGH
+ * operating mode is not OPMODE_HOMING
+ * TODO Maybe the conditions need to change (esp. the opmode one)
+ */
+void setSteppersOnOffState() {
 	const bool steppersSwitchOn = digitalRead(STEPPERS_ON_PIN) == HIGH;
 	const bool isHoming = operating_mode == OPMODE_HOMING;
 
@@ -96,16 +134,11 @@ void handleSteppersOnOff() {
 	}
 }
 
-
-// TODO Config and wrap in ifdef
-FuGPS gps(Serial1); // GPS module
-
+/**
+ * Run various tasks required to initialize
+ */
 void setup() {
-#ifdef DEBUG
 	Serial.begin(9600);
-#else
-	Serial.begin(9600);
-#endif
 
 	// This initializes the GPS module
 	// TODO Wrap in ifdef
@@ -114,7 +147,7 @@ void setup() {
 	// This sets up communication and conversion values
 	initCommunication();
 
-
+	// Initialize stepper motor drivers
 	setupSteppers();
 
 	// Button pins
@@ -126,13 +159,11 @@ void setup() {
 }
 
 
-
-unsigned int calc = 0;
 void loop() {
 	// If the HOME button is pressed/switched on start homing mode
-	const bool homeNow = digitalRead(HOME_NOW_PIN) == HIGH;
+	const bool currentlyHoming = digitalRead(HOME_NOW_PIN) == HIGH;
 
-	if (homeNow) {
+	if (currentlyHoming) {
 		operating_mode = OPMODE_HOMING;
 	}
 
@@ -144,12 +175,13 @@ void loop() {
 	bool requiresHoming = operating_mode == OPMODE_HOMING;
 
 	// Handle serial serial communication. Returns true if homing was just performed
-	bool justHomed = communication(axes, requiresHoming);
+	bool justHomed = handleSerialCommunication(axes, requiresHoming);
 
 	// If DEBUG_HOME_IMMEDIATELY is defined, homing is performed on first loop iteration.
 	// Otherwise a serial command or HOME_NOW Button are required
-	if (justHomed || homeNow || (homeImmediately && calc == 0)) {
-		DEBUG_PRINTLN("Set home");
+	if (justHomed || currentlyHoming
+			|| (homeImmediately && loopIteration == 0)) {
+		DEBUG_PRINTLN("Set home position");
 
 		justHomed = true;
 
@@ -158,27 +190,27 @@ void loop() {
 	}
 
 	// Turn the stepper motors on or off, depending on state of STEPPERS_ON_PIN
-	handleSteppersOnOff();
+	setSteppersOnOffState();
 
-	// Every 10.000 loop iterations we handle motor movements. This should be dynamic, based on how long calculations/serial comms took
-	if (calc >= 10000 || calc == 0) {
-		calc = 0;
+	// Every 10.000 loop iterations: Handle motor movements.
+	// TODO This should be dynamic, based on how long calculations/serial comms took and/or if a new command is available
+	if (loopIteration >= 10000 || loopIteration == 0) {
+		loopIteration = 0;
 
-#if defined DEBUG && defined DEBUG_SERIAL
+		// Start timing the calculation
 		long micros_start = micros();
-#endif
-		// This function converts the coordinates and sends motor move commands
-		bool didMove = EQ_to_AZ(axes, azimuth, elevation, gps, pos, justHomed);
 
-#if defined DEBUG && defined DEBUG_SERIAL
-		if (didMove) {
+		// This function converts the coordinates and sends motor move commands
+		bool stepper_pos_changed = handleMovement(axes, azimuth, altitude, gps, pos, justHomed);
+
+		// Debug: If a move took place, output how long it took from beginning to end of the calculation
+		if (stepper_pos_changed) {
 			long calc_time = micros() - micros_start;
 			DEBUG_PRINT("; Move took ");
 			DEBUG_PRINT(calc_time / 1000.);
 			DEBUG_PRINTLN("ms");
 		}
-#endif
 	}
 
-	calc++;
+	loopIteration++;
 }

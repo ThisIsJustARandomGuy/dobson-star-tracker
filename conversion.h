@@ -19,12 +19,12 @@
 void initCommunication();
 bool parseCommands(MultiStepper &motors, bool homingMode);
 void receiveCommandChar();
-bool communication(MultiStepper &motors, bool homingMode);
+bool handleSerialCommunication(MultiStepper &motors, bool homingMode);
 
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az, AccelStepper &el,
+bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelStepper &stepper_altitude,
 		FuGPS &gps, Position &pos,
 		bool justHomed);
 

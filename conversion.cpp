@@ -154,13 +154,14 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 
 			Serial.print("1");
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
-			// Set target DEC
+			// Set target Declination (in degrees, minutes and seconds)
 
 			int multi = (receivedChars[3] == '+') ? 1 : -1; // TODO bool may be more memory efficient
 
 			int deg = multi_char_to_int(receivedChars[4], receivedChars[5]);
 			int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
 			int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
+
 
 			sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], deg, 223,
 					mins, secs);
@@ -247,7 +248,7 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 }
 
 // Returns true if homing command was sent
-bool communication(MultiStepper &motors, bool homingMode) {
+bool handleSerialCommunication(MultiStepper &motors, bool homingMode) {
 	receiveCommandChar();
 	return parseCommands(motors, homingMode);
 }
@@ -295,6 +296,9 @@ float rad2deg(float rad) {
 volatile float rlyaz = 0;
 volatile float rlydec = 0;
 
+// Stepper positions when homing was performed
+long home_az = 0;
+long home_alt = 0;
 
 // The last reported positions
 long last_reported_az = 0;
@@ -317,7 +321,7 @@ float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tabl
  * This function converts from right ascension + declination to azimuth and altitude.
  * Returns true if a move was done
  */
-bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
+bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelStepper &stepper_altitude,
 		FuGPS &gps, Position &pos, bool justHomed) {
 	// KEEP TIME
 	// TODO Month rollover etc
@@ -426,22 +430,28 @@ bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 			(deg_altitude / 360) * ALT_STEPS_PER_REV);
 
 	if (justHomed || !isHomed) {
+		// If not homed, or if homing was performed in this loop iteration just
+		// set the current stepper position to the current target position without moving them
 		DEBUG_PRINT("Just homed to ");
 		DEBUG_PRINT(desired_az);
 		DEBUG_PRINT(" / ");
 		DEBUG_PRINTLN(desired_alt);
 
-		az_s.setCurrentPosition(desired_az);
-		el_s.setCurrentPosition(desired_alt);
+		stepper_azimuth.setCurrentPosition(desired_az);
+		stepper_altitude.setCurrentPosition(desired_alt);
+
+		home_az = desired_az;
+		home_alt = desired_alt;
 
 		last_desired_az = desired_az;
 		last_desired_dec = desired_alt;
+
+		// Homing was performed
 		isHomed = true;
 	} else {
-		az_s.moveTo(desired_az);
-		el_s.moveTo(desired_alt);
-		//az_s.runToNewPosition(last_desired_az - desired_az);
-		//el_s.runToNewPosition(last_desired_dec - desired_alt);
+		// Move the steppers to their target positions
+		stepper_azimuth.moveTo(desired_az);
+		stepper_altitude.moveTo(desired_alt);
 
 		// From here on only debug outputs happen
 		if (last_desired_az - desired_az > 0
@@ -484,9 +494,9 @@ bool EQ_to_AZ(MultiStepper &motors, AccelStepper &az_s, AccelStepper &el_s,
 			DEBUG_PRINT(" / ");
 			DEBUG_PRINT(last_desired_dec - desired_alt);
 			DEBUG_PRINT("°; Reported: az");
-			DEBUG_PRINT(az_s.currentPosition());
+			DEBUG_PRINT(stepper_azimuth.currentPosition());
 			DEBUG_PRINT("/dec ");
-			DEBUG_PRINT(el_s.currentPosition());
+			DEBUG_PRINT(stepper_altitude.currentPosition());
 		}
 	}
 
