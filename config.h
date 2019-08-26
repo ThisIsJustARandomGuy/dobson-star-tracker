@@ -1,6 +1,11 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+// BOARD Config
+// Only define one of these
+//#define BOARD_ARDUINO_MEGA
+#define BOARD_ARDUINO_UNO
+
 #define STEPPER_INTERRUPT_FREQ 100   // Unit is microseconds; 1.000.000 is one second
 
 /*
@@ -41,16 +46,16 @@
  */
 
 // Uncomment the following line to enable various debug features that would otherwise not get compiled into the firmware
-//#define DEBUG
+#define DEBUG
 
 // Uncomment the following line to enable sending debug statements via the serial port
-//#define DEBUG_SERIAL
+#define DEBUG_SERIAL
 
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS
 
 // If this is uncommented the telescope assumes that it is homed on startup to whatever position is set in conversion.cpp
-#define DEBUG_HOME_IMMEDIATELY
+//#define DEBUG_HOME_IMMEDIATELY
 
 //#define DEBUG_DISABLE_ALL_STEPPERS     // Uncomment this to disable ALL stepper drivers
 //#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor

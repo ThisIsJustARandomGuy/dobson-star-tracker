@@ -321,7 +321,8 @@ float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tabl
  * This function converts from right ascension + declination to azimuth and altitude.
  * Returns true if a move was done
  */
-bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelStepper &stepper_altitude,
+long handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth,
+		AccelStepper &stepper_altitude,
 		FuGPS &gps, Position &pos, bool justHomed) {
 	// KEEP TIME
 	// TODO Month rollover etc
@@ -429,7 +430,8 @@ bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelSt
 	const long desired_alt = (long) (
 			(deg_altitude / 360) * ALT_STEPS_PER_REV);
 
-	if (justHomed || !isHomed) {
+	long micros_after_move = 0l;
+	if (justHomed && !isHomed) {
 		// If not homed, or if homing was performed in this loop iteration just
 		// set the current stepper position to the current target position without moving them
 		DEBUG_PRINT("Just homed to ");
@@ -456,6 +458,8 @@ bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelSt
 		// From here on only debug outputs happen
 		if (last_desired_az - desired_az > 0
 				|| last_desired_dec - desired_alt > 0) {
+			micros_after_move = micros();
+
 			DEBUG_PRINT_V(
 					gps.hasFix() ?
 						"GPS: " + String(gps.Satellites, 6) + "S/"
@@ -504,10 +508,9 @@ bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelSt
 			|| last_desired_dec - desired_alt > 0) {
 		last_desired_az = desired_az;
 		last_desired_dec = desired_alt;
-		return true;
-	} else {
-		return false;
 	}
+
+	return micros_after_move;
 }
 //#endif
 

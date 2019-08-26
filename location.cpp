@@ -1,7 +1,10 @@
 #include <Arduino.h>
-#include <EEPROM.h>
 #include <FuGPS.h>
 #include "./config.h"
+
+#ifdef BOARD_ARDUINO_MEGA
+#include <EEPROM.h>
+#endif
 
 #include "./location.h"
 
@@ -25,12 +28,21 @@ void loadFromEEPROM() {
 	float altitude, latitude, longitude;
 	int hours, minutes, seconds;
 
+
+#ifdef BOARD_ARDUINO_MEGA
 	EEPROM.get(eeprom_alt, altitude);
 	EEPROM.get(eeprom_lat, latitude);
 	EEPROM.get(eeprom_lng, longitude);
 	EEPROM.get(eeprom_hours, hours);
 	EEPROM.get(eeprom_minutes, minutes);
 	EEPROM.get(eeprom_seconds, seconds);
+#else
+	altitude = 0;
+	latitude = 0;
+	longitude = 0;
+	hours = 0;
+	seconds = 0;
+#endif
 
 	gpsPosition.altitude = altitude;
 	gpsPosition.latitude = latitude;
@@ -45,12 +57,14 @@ void loadFromEEPROM() {
  */
 void updateEEPROM(float altitude, float latitude, float longitude, int hours,
 		int minutes, int seconds) {
+#ifdef BOARD_ARDUINO_MEGA
 	EEPROM.update(eeprom_alt, altitude);
 	EEPROM.update(eeprom_lat, latitude);
 	EEPROM.update(eeprom_lng, longitude);
 	EEPROM.update(eeprom_hours, hours);
 	EEPROM.update(eeprom_minutes, minutes);
 	EEPROM.update(eeprom_seconds, seconds);
+#endif
 
 	gpsPosition.altitude = altitude;
 	gpsPosition.latitude = latitude;

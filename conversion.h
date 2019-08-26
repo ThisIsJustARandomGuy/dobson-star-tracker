@@ -24,7 +24,8 @@ bool handleSerialCommunication(MultiStepper &motors, bool homingMode);
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-bool handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth, AccelStepper &stepper_altitude,
+long handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth,
+		AccelStepper &stepper_altitude,
 		FuGPS &gps, Position &pos,
 		bool justHomed);
 

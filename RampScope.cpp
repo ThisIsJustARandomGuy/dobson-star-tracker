@@ -1,6 +1,5 @@
 #include <AccelStepper.h>
 #include <Arduino.h>
-#include <TimerOne.h>
 #include <FuGPS.h>
 #include <HardwareSerial.h>
 #include <MultiStepper.h>
@@ -8,6 +7,12 @@
 #include "config.h"
 #include "conversion.h"
 #include "location.h"
+
+#ifdef BOARD_ARDUINO_MEGA
+#include <TimerOne.h>
+#elif defined BOARD_ARDUINO_UNO
+#include <DueTimer.h>
+#endif
 
 
 AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN); // Azimuth stepper
@@ -86,8 +91,13 @@ void setupSteppers() {
 	axes.addStepper(azimuth);
 	axes.addStepper(altitude);
 
+#ifdef BOARD_ARDUINO_MEGA
 	Timer1.initialize(STEPPER_INTERRUPT_FREQ);
 	Timer1.attachInterrupt(&moveSteppers);
+#elif defined BOARD_ARDUINO_UNO
+	Timer.getAvailable().attachInterrupt(&moveSteppers).start(
+			STEPPER_INTERRUPT_FREQ);
+#endif
 
 #ifdef AZ_ENABLE
 	DEBUG_PRINTLN("DBG Az  ON");
@@ -181,8 +191,6 @@ void loop() {
 	// Otherwise a serial command or HOME_NOW Button are required
 	if (justHomed || currentlyHoming
 			|| (homeImmediately && loopIteration == 0)) {
-		DEBUG_PRINTLN("Set home position");
-
 		justHomed = true;
 
 		// Start tracking after homing
@@ -201,11 +209,12 @@ void loop() {
 		long micros_start = micros();
 
 		// This function converts the coordinates and sends motor move commands
-		bool stepper_pos_changed = handleMovement(axes, azimuth, altitude, gps, pos, justHomed);
+		long micros_after_move = handleMovement(axes, azimuth, altitude, gps, pos, justHomed);
 
 		// Debug: If a move took place, output how long it took from beginning to end of the calculation
-		if (stepper_pos_changed) {
-			long calc_time = micros() - micros_start;
+		if (micros_after_move > 0) {
+			long move_time = micros() - micros_start;
+			long calc_time = micros_after_move - micros_start;
 			DEBUG_PRINT("; Move took ");
 			DEBUG_PRINT(calc_time / 1000.);
 			DEBUG_PRINTLN("ms");
