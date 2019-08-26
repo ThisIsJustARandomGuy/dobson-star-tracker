@@ -23,11 +23,12 @@ This project aims to enable makers to motorize their dobson-style mounted telesc
 + :DBGMDD# Decrease Declination by 1 degree
 + :DBGDM[0-9]# Disable Motors for X seconds
 
-##TODOs
+## TODOs
 
 The Most important TODOs are as follows (in no particular order)
 + Documentation
-+ Console interface which allows for basic control of the telescope (list commands, get/set position, jog to, track current position)
++ Board compatibility: Out-of-the-box support for Arduino Mega and Arduino Due with their respective RAMPS shields
 + GPS: Reliably read the time from GPS
-+ EEPROM: Store time and location in EEPROM
-+ Motor control: On, off, improve the loop
++ Time keeping: Keep time and interpolate when big swings happen
++ EEPROM: Store time and location in EEPROM (Mega) or Flash (Due); Provide a single interface
++ Motor control: Turn On/Off permanently. Off for X seconds is already implemented as :DBGDM[0-9]#
