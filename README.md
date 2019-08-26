@@ -16,6 +16,7 @@ This project aims to enable makers to motorize their dobson-style mounted telesc
 + :Sr,HH:MM:SS# Set RA; Example: :Sr,12:34:56#
 + :Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#
 + :MS# Start Move
++ :Q# Quit Move (Not Implemented)
 + :DBGM[0-5]# Move to debug position X
 + :DBGMIA# Increase Ascension by 1 degree
 + :DBGMDA# Decrease Ascension by 1 degree
