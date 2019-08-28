@@ -31,10 +31,15 @@
 #define ALT_MAX_SPEED       10000  // Maximum speed for the altitude stepper
 
 /*
- * Buttons
+ * Other Pins
+ * y+ is dead
+ * y- buzzer
+ * x+ stepper on
+ * x- pushbutton
  */
-#define STEPPERS_ON_PIN    34 // RAMPS Q_DIR_PIN. If this pin is HIGH, the steppers are turned on
-#define HOME_NOW_PIN       36 // RAMPS Q_STEP_PIN. If this pin is HIGH, homing is performed
+#define BUZZER_PIN         14 // Uncomment if you have a buzzer installed. Default pin for RAMPS 1.4 is Z_MIN
+#define STEPPERS_ON_PIN    2 // Uncomment if you have a stepper switch installed. Default pin for RAMPS 1.4 is  X_MIN. If this pin is HIGH, the steppers are turned on.
+#define HOME_NOW_PIN       3 // Uncomment if you have a homing mode switch installed. Default pin for RAMPS 1.4 is X_MAX. If this pin is HIGH, homing is performed
 
 
 /**

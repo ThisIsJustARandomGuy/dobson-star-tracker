@@ -8,6 +8,7 @@
 
 #include <Arduino.h>
 #include <AccelStepper.h>
+#include <Time.h>
 
 #include "./config.h"
 #include "./conversion.h"
@@ -105,7 +106,7 @@ const int maxDebugPos = 9;
 /**
  * This gets called whenever
  */
-bool parseCommands(MultiStepper &motors, bool homingMode) {
+bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			// GR: Get Right Ascension
@@ -152,6 +153,10 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 			//ra_deg = 360. * (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
 			ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
 
+			RaDecPosition scopeTarget = telescope.getTarget();
+			scopeTarget.rightAscension = ra_deg;
+			telescope.setTarget(scopeTarget);
+
 			Serial.print("1");
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target Declination (in degrees, minutes and seconds)
@@ -172,6 +177,11 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 			dec_deg = (multi * deg) + mins / 60. + secs / 3600.;
 			isPositiveDeclination = multi > 0;
 
+			RaDecPosition scopeTarget = telescope.getTarget();
+			scopeTarget.declination = dec_deg;
+			telescope.setTarget(scopeTarget);
+
+
 			Serial.print("1");
 		} else if (receivedChars[0] == 'D' && receivedChars[1] == 'B'
 				&& receivedChars[2] == 'G') {
@@ -183,6 +193,9 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 					if (receivedChars[5] == 'A') {
 						// DBGMAXXX Move Azimuth to XXX
 						ra_deg += add;
+						RaDecPosition pos = telescope.getTarget();
+						pos.rightAscension += add;
+						telescope.setTarget(pos);
 						Serial.println(
 								add > 0 ?
 										"Add 1 deg ascension" :
@@ -190,6 +203,9 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 					} else if (receivedChars[5] == 'D') {
 						// DBGMD[+/-]XX Move Declination to +/-XX
 						dec_deg += add;
+						RaDecPosition pos = telescope.getTarget();
+						pos.declination += add;
+						telescope.setTarget(pos);
 						Serial.println(
 								add > 0 ?
 										"Add 1 deg declination" :
@@ -198,19 +214,24 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 				} else {
 				// Debug move to position stored in debugPositions[targetIndex]
 					int targetIndex = char_to_int(receivedChars[4]);
-				if (targetIndex > maxDebugPos) {
-					Serial.println("Invalid index");
-				} else {
-					Serial.println("Moving from ALT / DEC");
-					Serial.println(ra_deg);
-					Serial.println(dec_deg);
-					Serial.println("Moving to ALT / DEC");
-					Serial.println(debugPositions[targetIndex][0] * 15);
-					Serial.println(debugPositions[targetIndex][1]);
-					ra_deg = debugPositions[targetIndex][0] * 15;
-					dec_deg = debugPositions[targetIndex][1];
+					if (targetIndex > maxDebugPos) {
+						Serial.println("Invalid index");
+					} else {
+						Serial.println("Moving from ALT / DEC");
+						Serial.println(ra_deg);
+						Serial.println(dec_deg);
+						Serial.println("Moving to ALT / DEC");
+						Serial.println(debugPositions[targetIndex][0] * 15);
+						Serial.println(debugPositions[targetIndex][1]);
+						ra_deg = debugPositions[targetIndex][0] * 15;
+						dec_deg = debugPositions[targetIndex][1];
+						RaDecPosition newPos = { debugPositions[targetIndex][0] * 15, debugPositions[targetIndex][1] };
+						telescope.setTarget(newPos);
+					}
 				}
-				}
+			} else if (receivedChars[3] == 'H') {
+				// Home the scope
+				telescope.setHomed();
 			} else if (receivedChars[3] == 'D' && receivedChars[4] == 'M') {
 				// Disable Motors and Pause for X seconds
 				digitalWrite(ALT_ENABLE_PIN, HIGH);
@@ -221,6 +242,23 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 				Serial.println("Continuing");
 				digitalWrite(ALT_ENABLE_PIN, LOW);
 				digitalWrite(AZ_ENABLE_PIN, LOW);
+			} else if (receivedChars[3] == 'G' && receivedChars[4] == 'P' && receivedChars[5] == 'S') {
+				// GPS Debug info
+				Serial.println("GPS Status: ");
+				Serial.print("Alive      ... ");
+				Serial.println(gps.isAlive() ? "Yes" : "No");
+				Serial.print("Fix        ... ");
+				Serial.println((gps.hasFix() ? "Yes" : "No"));
+				Serial.print("Satellites ... ");
+				Serial.println(String(gps.Satellites, 6));
+				Serial.print("Quality    ... ");
+				Serial.println(String(gps.Quality, 6));
+				Serial.print("Altitude   ... ");
+				Serial.println(String(gps.Altitude, 6));
+				Serial.print("Latitude   ... ");
+				Serial.println(String(gps.Latitude, 6));
+				Serial.print("Longitude  ... ");
+				Serial.println(String(gps.Longitude, 6));
 			}
 		} else if (receivedChars[0] == 'H' && receivedChars[1] == 'L'
 				&& receivedChars[2] == 'P') {
@@ -248,31 +286,11 @@ bool parseCommands(MultiStepper &motors, bool homingMode) {
 }
 
 // Returns true if homing command was sent
-bool handleSerialCommunication(MultiStepper &motors, bool homingMode) {
+bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
 	receiveCommandChar();
-	return parseCommands(motors, homingMode);
+	return parseCommands(telescope, gps, homingMode);
 }
 
-
-float ecliptic_longitude_sun(float T) {
-	float k = 2 * pi / 360;
-
-	//mean anomaly, degree
-	float M = 357.52910 + 35999.05030 * T - 0.0001559 * T * T
-			- 0.00000048 * T * T * T;
-	// mean longitude, degree
-	float L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T * T;
-	// Sun's equation of center
-	float DL = (1.914600 - 0.004817 * T - 0.000014 * T * T) * sin(k * M)
-			+ (0.019993 - 0.000101 * T) * sin(k * 2 * M)
-			+ 0.000290 * sin(k * 3 * M);
-
-	// true longitude, degree
-	return L0 + DL;
-}
-
-
-long jul_day_2k = 2451545;
 
 // According to http://www.geoastro.de/elevaz/basics/index.htm
 const long timeLast = 0;
@@ -316,202 +334,5 @@ long current_month = 8;
 float current_jul_magic_year = 6938.5; // -731.5=1998 //6938.5=2019
 float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tables
 
-
-/**
- * This function converts from right ascension + declination to azimuth and altitude.
- * Returns true if a move was done
- */
-long handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth,
-		AccelStepper &stepper_altitude,
-		FuGPS &gps, Position &pos, bool justHomed) {
-	// KEEP TIME
-	// TODO Month rollover etc
-	// This will be handled by GPS eventually, but we may need a better way to prevent bugs during testing
-
-	current_lat = pos.latitude > 1.00 ? pos.latitude : LAT;
-	current_lng = pos.longitude > 1.00 ? pos.longitude : LNG;
-
-	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since exceution started
-
-	int current_day = 24;
-	int current_hour = 23; //gps.Hours;
-	int current_minute = 02; //gps.Minutes;
-	int current_second = passed_seconds; //gps.Seconds;
-
-	// Second, Minute and Hour rollover
-	while (current_second >= 60) {
-		current_minute++;
-		current_second -= 60;
-	}
-	while (current_minute >= 60) {
-		current_hour++;
-		current_minute -= 60;
-	}
-	while (current_hour >= 24) {
-		current_day += 1;
-		current_hour -= 24;
-	}
-
-	// Current time in UTC with hour rollover
-	float current_utc = (current_hour + TIMEZONE_CORRECTION_H) + (current_minute / 60.0)
-			+ (current_second / 3600.0);
-
-	while (current_utc < 0) {
-		current_utc += 24;
-	}
-	while (current_utc >= 24) {
-		current_utc -= 24;
-	}
-
-	// Julian Days since 2000
-	float jul_days_s2k = (((current_minute / 60.0) + (current_hour)) / 24.0)
-			+ current_jul_magic_mo + current_day + current_jul_magic_year;
-	// END TIMEKEEPING
-
-	// number of Julian centuaries since Jan 1, 2000, 12 UT
-	const float jul_centuaries = jul_days_s2k / 36525;
-
-	// calculate the local siderian time (in degrees)
-	float local_siderian_time = 100.46 + 0.985647 * jul_days_s2k + current_lng
-			+ 15 * current_utc;
-
-	// Ensure that local_siderian_time is greater than 0 degrees
-	while (local_siderian_time < 0) {
-		local_siderian_time += 360;
-	}
-
-	// The hour angle is the difference between the local siderian time and the right ascension in degrees of our target object...
-	float hour_angle = local_siderian_time - ra_deg;
-	// ...but we need to ensure that it's greater than 0
-	while (hour_angle < 0) {
-		hour_angle += 360.0; // Maybe this is buggy
-	}
-
-	// Convert various values from degrees to radians since the trigonometry functions work with radians
-	const float rad_declination = deg2rad(dec_deg);
-	const float rad_current_lat = deg2rad(current_lat); // TODO this can be a constant if GPS_FIXED_POS is set
-	const float rad_hour_angle = deg2rad(hour_angle);
-
-	// These values are used multiple times throughout calculations, so we pull them out
-	const float sin_rad_declination = sin(rad_declination);
-	const float sin_rad_current_lat = sin(rad_current_lat);
-	const float cos_rad_current_lat = cos(rad_current_lat);
-
-	// Calculate altitude
-	const float sin_altitude = sin_rad_declination * sin_rad_current_lat
-			+ cos(rad_declination) * cos_rad_current_lat
-					* cos(rad_hour_angle);
-
-	const float rad_altitude = asin(sin_altitude);
-
-	// This is our resulting altitude in degrees
-	const float deg_altitude = rad2deg(rad_altitude); // RESULT
-
-	// Calculate azimuth
-	const float cos_a = (sin_rad_declination - sin(rad_altitude) * sin_rad_current_lat)
-			/ (cos(rad_altitude) * cos_rad_current_lat);
-	const float rad_a = acos(cos_a);
-	const float a = rad2deg(cos_a);
-	
-	// Azimuth in degrees is either 360-a or a, depending on whether sin(rad_hour_angle) is positive.
-	// It be like it is and it's also the second part of the result
-	float deg_azimuth;
-	// TODO This is buggy. When az=-57.3
-	if (sin(rad_hour_angle) > 0) {
-		deg_azimuth = 360 - a;
-	} else {
-		deg_azimuth = a;
-	}
-	deg_azimuth = a;
-
-	// TODO Is this really necessary to have it this complex? No
-	const long desired_az = (long) (
-			(deg_azimuth / 360) * AZ_STEPS_PER_REV);
-	const long desired_alt = (long) (
-			(deg_altitude / 360) * ALT_STEPS_PER_REV);
-
-	long micros_after_move = 0l;
-	if (justHomed && !isHomed) {
-		// If not homed, or if homing was performed in this loop iteration just
-		// set the current stepper position to the current target position without moving them
-		DEBUG_PRINT("Just homed to ");
-		DEBUG_PRINT(desired_az);
-		DEBUG_PRINT(" / ");
-		DEBUG_PRINTLN(desired_alt);
-
-		stepper_azimuth.setCurrentPosition(desired_az);
-		stepper_altitude.setCurrentPosition(desired_alt);
-
-		home_az = desired_az;
-		home_alt = desired_alt;
-
-		last_desired_az = desired_az;
-		last_desired_dec = desired_alt;
-
-		// Homing was performed
-		isHomed = true;
-	} else {
-		// Move the steppers to their target positions
-		stepper_azimuth.moveTo(desired_az);
-		stepper_altitude.moveTo(desired_alt);
-
-		// From here on only debug outputs happen
-		if (last_desired_az - desired_az > 0
-				|| last_desired_dec - desired_alt > 0) {
-			micros_after_move = micros();
-
-			DEBUG_PRINT_V(
-					gps.hasFix() ?
-						"GPS: " + String(gps.Satellites, 6) + "S/"
-									+ String(gps.Quality) + "Q "
-									+ String(gps.Latitude, 6) + "LAT / "
-									+ String(gps.Longitude, 6) + "LNG" :
-						"GPS: N/A");
-			DEBUG_PRINT("; LAT ");
-			DEBUG_PRINT(current_lat);
-			DEBUG_PRINT(", LNG ");
-			DEBUG_PRINT(current_lng);
-			DEBUG_PRINT("; RA ");
-			DEBUG_PRINT(ra_deg);
-			DEBUG_PRINT(" and DEC ");
-			DEBUG_PRINT(dec_deg);
-			DEBUG_PRINT(" to ALTAZ is: ALT ");
-			DEBUG_PRINT(deg_altitude);
-			DEBUG_PRINT("° AZ ");
-			DEBUG_PRINT(deg_azimuth);
-			DEBUG_PRINT("° HA ");
-			DEBUG_PRINT(rad_hour_angle);
-			DEBUG_PRINT("° sin(HA) ");
-			DEBUG_PRINT(sin(rad_hour_angle));
-			DEBUG_PRINT("ANG; The time is: ");
-			DEBUG_PRINT(current_hour);
-			DEBUG_PRINT(":");
-			DEBUG_PRINT(current_minute);
-			DEBUG_PRINT(":");
-			DEBUG_PRINT(current_second);
-			DEBUG_PRINT("Steppers: az");
-			DEBUG_PRINT(desired_az);
-			DEBUG_PRINT("/dec ");
-			DEBUG_PRINT(desired_alt);
-			DEBUG_PRINT(" diff ");
-			DEBUG_PRINT(last_desired_az - desired_az);
-			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(last_desired_dec - desired_alt);
-			DEBUG_PRINT("°; Reported: az");
-			DEBUG_PRINT(stepper_azimuth.currentPosition());
-			DEBUG_PRINT("/dec ");
-			DEBUG_PRINT(stepper_altitude.currentPosition());
-		}
-	}
-
-	if (last_desired_az - desired_az > 0
-			|| last_desired_dec - desired_alt > 0) {
-		last_desired_az = desired_az;
-		last_desired_dec = desired_alt;
-	}
-
-	return micros_after_move;
-}
-//#endif
 
 #endif

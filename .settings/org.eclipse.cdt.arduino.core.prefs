@@ -1,2 +1,2 @@
 eclipse.preferences.version=1
-libraries=["FuGPS Library","AccelStepper","DueTimer"]
+libraries=["FuGPS Library","AccelStepper","Time","DueTimer"]

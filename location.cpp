@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <FuGPS.h>
+#include <Time.h>
+
 #include "./config.h"
 
 #ifdef BOARD_ARDUINO_MEGA
@@ -10,7 +12,7 @@
 
 bool gpsAlive = false;
 
-Position gpsPosition = { 0, LAT, LNG, 21, 48, 49 }; // This stores the latest reported GPS position. Defaults to 0, LAT, LNG as set in config.h
+TelescopePosition gpsPosition = { 0, LAT, LNG }; // This stores the latest reported GPS position. Defaults to 0, LAT, LNG as set in config.h
 
 // These are the EEPROM addresses
 const unsigned int eeprom_alt = 0;
@@ -47,9 +49,9 @@ void loadFromEEPROM() {
 	gpsPosition.altitude = altitude;
 	gpsPosition.latitude = latitude;
 	gpsPosition.longitude = longitude;
-	gpsPosition.hours = hours;
-	gpsPosition.minutes = minutes;
-	gpsPosition.seconds = seconds;
+	//gpsPosition.hours = hours;
+	//gpsPosition.minutes = minutes;
+	//gpsPosition.seconds = seconds;
 }
 
 /**
@@ -69,15 +71,17 @@ void updateEEPROM(float altitude, float latitude, float longitude, int hours,
 	gpsPosition.altitude = altitude;
 	gpsPosition.latitude = latitude;
 	gpsPosition.longitude = longitude;
-	gpsPosition.hours = hours;
-	gpsPosition.minutes = minutes;
-	gpsPosition.seconds = seconds;
+	//gpsPosition.hours = hours;
+	//gpsPosition.minutes = minutes;
+	//gpsPosition.seconds = seconds;
 }
 
 /**
  * Initializes GPS
  */
-Position& initGPS(FuGPS &fuGPS) {
+TelescopePosition& initGPS(FuGPS &fuGPS) {
+	setTime(23, 38, 0, 28, 8, 2019);
+
 	// Begin communicating with the GPS module
 	Serial1.begin(9600);
 
@@ -94,13 +98,16 @@ Position& initGPS(FuGPS &fuGPS) {
 	// Set up the module
 	fuGPS.sendCommand(FUGPS_PMTK_SET_NMEA_BAUDRATE_9600);
 	fuGPS.sendCommand(FUGPS_PMTK_SET_NMEA_UPDATERATE_1HZ);
-	fuGPS.sendCommand(FUGPS_PMTK_API_SET_NMEA_OUTPUT_DEFAULT);
-	//fuGPS.sendCommand(FUGPS_PMTK_API_SET_NMEA_OUTPUT_RMCGGA);
+	//fuGPS.sendCommand(FUGPS_PMTK_API_SET_NMEA_OUTPUT_DEFAULT);
+	fuGPS.sendCommand(FUGPS_PMTK_API_SET_NMEA_OUTPUT_RMCGGA);
 
 	return gpsPosition;
 }
 
-Position& handleGPS(FuGPS &fuGPS) {
+bool didSetTimeWithoutFix = false;
+bool didSetTimeWithFix = false;
+
+TelescopePosition& handleGPS(FuGPS &fuGPS) {
 
 	if (fuGPS.read()) {
 		// We don't know, which message was came first (GGA or RMC).
@@ -118,7 +125,11 @@ Position& handleGPS(FuGPS &fuGPS) {
 						fuGPS.Minutes / 255.000 * 60.000,
 						fuGPS.Seconds / 255.000 * 60.000);
 
-
+			if (!didSetTimeWithFix) {
+				didSetTimeWithFix = true;
+				setTime(fuGPS.Hours - TIMEZONE_CORRECTION_H, fuGPS.Minutes, fuGPS.Seconds, fuGPS.Days, fuGPS.Months,
+						fuGPS.Years);
+			}
 #ifdef DEBUG_GPS
 			// Data from GGA or RMC
 			DEBUG_PRINTLN("Location (decimal degrees): https://www.google.com/maps/search/?api=1&query="
@@ -129,10 +140,16 @@ Position& handleGPS(FuGPS &fuGPS) {
 			//storePosition(fuGPS.Altitude, fuGPS.Latitude, fuGPS.Longitude);
 		} else {
 			digitalWrite(LED_BUILTIN, LOW);
-			//Serial.println("No GPS fix");
+
+			// Set time even if we do not have a GPS fix. At least 3 Satellites are required though
+			if (!didSetTimeWithFix && !didSetTimeWithoutFix && fuGPS.Satellites > 3) {
+				didSetTimeWithoutFix = true; // Only set time once
+				setTime(fuGPS.Hours - TIMEZONE_CORRECTION_H, fuGPS.Minutes, fuGPS.Seconds, fuGPS.Days, fuGPS.Months,
+						fuGPS.Years);
+			}
+			//Serial.println("No GPS fix: , Satellites: " + String(fuGPS.Satellites, 6));
 			//loadPosition();
 		}
-
 
 #ifdef DEBUG_GPS
 		//Serial.println(String(fuGPS.Hours, 6));
@@ -147,10 +164,17 @@ Position& handleGPS(FuGPS &fuGPS) {
 						+ String(fuGPS.Latitude, 6) + "; StoredLng: "
 						+ String(fuGPS.Longitude, 6));
 #endif
+	} else {
+		if (millis() % 1000 > 700) {
+			digitalWrite(LED_BUILTIN, HIGH);
+		} else {
+			digitalWrite(LED_BUILTIN, LOW);
+		}
 	}
 
 	// Default is 10 seconds
 	if (fuGPS.isAlive() == false) {
+		//Serial.println("Cannot read");
 		if (gpsAlive == true) {
 			gpsAlive = false;
 
@@ -158,6 +182,12 @@ Position& handleGPS(FuGPS &fuGPS) {
 			DEBUG_PRINTLN("GPS module not responding with valid data.");
 			DEBUG_PRINTLN("Check wiring or restart.");
 #endif
+		} else {
+			if (millis() % 200 > 100) {
+				digitalWrite(LED_BUILTIN, HIGH);
+			} else {
+				digitalWrite(LED_BUILTIN, LOW);
+			}
 		}
 	}
 

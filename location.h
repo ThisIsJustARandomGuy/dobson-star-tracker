@@ -3,19 +3,26 @@
 
 #import <FuGPS.h>
 
-struct Position {
+struct TelescopePosition {
 	float altitude;
 	float latitude;
 	float longitude;
-	int hours;
-	int minutes;
-	int seconds;
 };
+
+
+struct RaDecPosition {
+	float rightAscension;
+	float declination;
+};
+
+float deg2rad(float degs);
+
+float rad2deg(float rad);
 
 void loadFromEEPROM();
 void updateEEPROM(float altitude, float latitude, float longitude, int hours,
 		int minutes, int seconds);
-Position& initGPS(FuGPS &gps);
-Position& handleGPS(FuGPS &gps);
+TelescopePosition& initGPS(FuGPS &gps);
+TelescopePosition& handleGPS(FuGPS &gps);
 
 #endif // LOCATION_H

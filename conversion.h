@@ -14,19 +14,20 @@
 #include <MultiStepper.h>
 #include <FuGPS.h>
 
+#include "Mounts/Mount.h"
 #include "location.h"
 
 void initCommunication();
-bool parseCommands(MultiStepper &motors, bool homingMode);
+bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode);
 void receiveCommandChar();
-bool handleSerialCommunication(MultiStepper &motors, bool homingMode);
+bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode);
 
 float ecliptic_longitude_sun(float T);
 float deg2rad(float deg);
 float rad2deg(float rad);
-long handleMovement(MultiStepper &motors, AccelStepper &stepper_azimuth,
+long handleMovement(Mount &telescope, AccelStepper &stepper_azimuth,
 		AccelStepper &stepper_altitude,
-		FuGPS &gps, Position &pos,
+		FuGPS &gps, TelescopePosition &pos,
 		bool justHomed);
 
 #endif /* CONVERSION_H_ */
