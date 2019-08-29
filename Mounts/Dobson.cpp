@@ -20,7 +20,7 @@ Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGP
 	// no code here?
 }
 
-
+// Calculate new motor targets. This does not yet execute the move
 void Dobson::calculateMotorTargets() {
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since execution started
 
@@ -58,9 +58,9 @@ void Dobson::calculateMotorTargets() {
 	}
 
 	// Convert various values from degrees to radians since the trigonometry functions work with radians
-	const float rad_declination = deg2rad(_target.declination);
-	const float rad_current_lat = deg2rad(_gpsPosition.latitude); // TODO this can be a constant if GPS_FIXED_POS is set
-	const float rad_hour_angle = deg2rad(hour_angle);
+	const float rad_declination = radians(_target.declination);
+	const float rad_current_lat = radians(_gpsPosition.latitude); // TODO this can be a constant if GPS_FIXED_POS is set
+	const float rad_hour_angle = radians(hour_angle);
 
 	// These values are used multiple times throughout calculations, so we pull them out
 	const float sin_rad_declination = sin(rad_declination);
@@ -74,27 +74,24 @@ void Dobson::calculateMotorTargets() {
 	const float rad_altitude = asin(sin_altitude);
 
 	// This is our resulting altitude in degrees
-	_altitudeDegrees = rad2deg(rad_altitude); // RESULT
+	_altitudeDegrees = degrees(rad_altitude); // RESULT
 
 	// Calculate azimuth
-	const float cos_a = (sin_rad_declination - sin(rad_altitude) * sin_rad_current_lat)
+	const float cos_azimuth = (sin_rad_declination - sin(rad_altitude) * sin_rad_current_lat)
 			/ (cos(rad_altitude) * cos_rad_current_lat);
-	const float rad_a = acos(cos_a);
-	const float a = rad2deg(cos_a);
+	const float azimuth_degrees = degrees(acos(cos_azimuth));
 
 	// Azimuth in degrees is either 360-a or a, depending on whether sin(rad_hour_angle) is positive.
 	// It be like it is and it's also the second part of the result
-	float deg_azimuth;
 	// TODO This is buggy. When az=-57.3
 	if (sin(rad_hour_angle) > 0) {
-		deg_azimuth = 360 - a;
+		_azimuthDegrees = 360.0 - azimuth_degrees;
 	} else {
-		deg_azimuth = a;
+		_azimuthDegrees = azimuth_degrees;
 	}
-	_azimuthDegrees = a;
 
 	// TODO Is it really necessary to have it this complex? No
-	_steppersTarget = { (long) ((_azimuthDegrees / 360) * AZ_STEPS_PER_REV), (long) ((_altitudeDegrees / 360)
+	_steppersTarget = { (long) ((_azimuthDegrees / 360.0) * AZ_STEPS_PER_REV), (long) ((_altitudeDegrees / 360.0)
 			* ALT_STEPS_PER_REV) };
 
 
@@ -113,12 +110,12 @@ void Dobson::move() {
 		DEBUG_PRINT(" / ");
 		DEBUG_PRINTLN(_steppersTarget.altitude);
 
-			// If not homed, or if homing was performed in this loop iteration just
+		// If not homed, or if homing was performed in this loop iteration just
 		// set the current stepper position to the current target position without moving them
 		_azimuthStepper.setCurrentPosition(_steppersTarget.azimuth);
 		_altitudeStepper.setCurrentPosition(_steppersTarget.altitude);
 
-			_steppersHomed = { _steppersTarget.azimuth, _steppersTarget.altitude };
+		_steppersHomed = { _steppersTarget.azimuth, _steppersTarget.altitude };
 		_steppersLastTarget = { _steppersTarget.azimuth, _steppersTarget.altitude };
 
 			// Homing was performed
@@ -130,13 +127,12 @@ void Dobson::move() {
 		_azimuthStepper.moveTo(_steppersTarget.azimuth);
 		_altitudeStepper.moveTo(_steppersTarget.altitude);
 
-			// Gelb ist RX am arduino
 		// From here on only debug outputs happen
 		if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0
 				|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0) {
 			micros_after_move = micros();
 
-				DEBUG_PRINT_V(
+			DEBUG_PRINT_V(
 					_gps.hasFix() ?
 							"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
 									+ String(_gps.Latitude, 6) + "LAT / " + String(_gps.Longitude, 6) + "LNG" :

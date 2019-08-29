@@ -104,85 +104,138 @@ const int maxDebugPos = 9;
 #define multi_char_to_int(x, y) ((x - '0') * 10 + (y - '0'))
 
 /**
- * This gets called whenever
+ * Serial commands start
+ * This section contains a function for each serial command that can get handled
+ * TODO Refactor this into a class so that we can later support connections to different programs / tools
+ */
+// Print the possible commands
+void printHelp() {
+	Serial.println(":HLP# Print available Commands");
+	Serial.println(":GR# Get Right Ascension");
+	Serial.println(":GD# Get Declination");
+	Serial.println(":Sr,HH:MM:SS# Set Right Ascension; Example: :Sr,12:34:56#");
+	Serial.println(":Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#");
+	Serial.println(":MS# Start Move");
+	Serial.println(":DBGM[0-5]# Move to debug position X");
+	Serial.println(":DBGMIA# Increase Ascension by 1 degree");
+	Serial.println(":DBGMDA# Decrease Ascension by 1 degree");
+	Serial.println(":DBGMID# Increase Declination by 1 degree");
+	Serial.println(":DBGMDD# Decrease Declination by 1 degree");
+	Serial.println(":DBGDM[0-9]# Disable Motors for X seconds");
+}
+
+
+
+// Reports the current right ascension
+void getRightAscension() {
+	Serial.print(txAR);
+}
+
+// Reports the current declination
+void getDeclination() {
+	Serial.print(txDEC);
+}
+
+// Quit the current move
+// TODO Implement this
+// Motor Position to RaDec conversion is required for this to work and not lose the reported position
+void moveQuit() {
+
+}
+
+// Start the requested move
+// TODO This currently doesn't really work, since moves are immediately executed once
+// a new position is requested.
+bool moveStart(bool homingMode) {
+	// Immediately confirm to Stellarium
+	Serial.print("0");
+
+	// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
+	// If homing mode is true we set isHomed to true
+	// and return true to indicate to the loop() function that homing is complete.
+	if (homingMode) {
+		isHomed = true;
+		return true;
+	}
+}
+
+
+// Set Right Ascension (in hours, minutes and seconds)
+void setRightAscension(Mount &telescope) {
+	// Immediately confirm to Stellarium
+	Serial.print("1");
+
+	// Parse the coordinates part of the command to integers
+	int hrs = multi_char_to_int(receivedChars[3], receivedChars[4]);
+	int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
+	int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
+
+	// This is what we return to Stellarium when it asks for the current right ascension
+	sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
+
+	// This is our ultimate target value
+	last_ra_deg = ra_deg;
+	//ra_deg = 360. * (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
+	ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
+
+	RaDecPosition scopeTarget = telescope.getTarget();
+	scopeTarget.rightAscension = ra_deg;
+	telescope.setTarget(scopeTarget);
+}
+
+// Set target Declination (in +/- degrees, minutes and seconds)
+void setDeclination(Mount &telescope) {
+	// Immediately confirm to Stellarium
+	Serial.print("1");
+
+	int multi = (receivedChars[3] == '+') ? 1 : -1; // TODO bool may be more memory efficient
+
+	int deg = multi_char_to_int(receivedChars[4], receivedChars[5]);
+	int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
+	int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
+
+	sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], deg, 223, mins, secs);
+
+	last_dec_deg = dec_deg;
+
+	dec_deg = multi * (deg + mins / 60. + secs / 3600.);
+	isPositiveDeclination = multi > 0;
+
+	RaDecPosition scopeTarget = telescope.getTarget();
+	scopeTarget.declination = dec_deg;
+	telescope.setTarget(scopeTarget);
+}
+
+
+/**
+ * This gets called whenever a complete command was received.
+ * It parses the received characters and calls the required functions
+ * TODO Break this up into small functions so that the code stays maintainable
  */
 bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			// GR: Get Right Ascension
-			Serial.print(txAR);
+			getRightAscension();
 		} else if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
 			// GD: Get Declination
-			Serial.print(txDEC);
+			getDeclination();
 		} else if (receivedChars[0] == 'Q') {
-			// Stop moving
-			// TODO Implement this
+			// Quit the current move
+			moveQuit();
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// MS: Move Start
-			Serial.print("0");
-
-			// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
-			// If homing mode is true we set isHomed to true
-			// and return true to indicate to the loop() function that homing is complete.
-			if (homingMode) {
-				isHomed = true;
+			// The function returning true means that isHomed was set to true.
+			if (moveStart(homingMode)) {
 				newData = false;
 				return true;
-			} else {
-				// :Sr,16:41:00#
-				// :Sr,15:41:00#
-				// :Sd,+36:28:00#
-				// :Sd,+16:30:00#
-				// Otherwise send a move command to the motors.
-				// This will move both motors such that they end their moves at the same time
-				// motors.moveTo(positions);
 			}
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'r') {
 			// Set Right Ascension (in hours, minutes and seconds)
-
-			// Parse the coordinates part of the command to integers
-			int hrs = multi_char_to_int(receivedChars[3], receivedChars[4]);
-			int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
-			int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
-
-			// This is what we return to Stellarium when it asks for the current right ascension
-			sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
-
-			// This is our ultimate target value
-			last_ra_deg = ra_deg;
-			//ra_deg = 360. * (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
-			ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
-
-			RaDecPosition scopeTarget = telescope.getTarget();
-			scopeTarget.rightAscension = ra_deg;
-			telescope.setTarget(scopeTarget);
-
-			Serial.print("1");
+			setRightAscension(telescope);
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target Declination (in degrees, minutes and seconds)
-
-			int multi = (receivedChars[3] == '+') ? 1 : -1; // TODO bool may be more memory efficient
-
-			int deg = multi_char_to_int(receivedChars[4], receivedChars[5]);
-			int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
-			int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
-
-
-			sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], deg, 223,
-					mins, secs);
-
-			last_dec_deg = dec_deg;
-
-			//dec_deg = multi * (deg + mins / 60. + secs / 3600.);
-			dec_deg = (multi * deg) + mins / 60. + secs / 3600.;
-			isPositiveDeclination = multi > 0;
-
-			RaDecPosition scopeTarget = telescope.getTarget();
-			scopeTarget.declination = dec_deg;
-			telescope.setTarget(scopeTarget);
-
-
-			Serial.print("1");
+			setDeclination(telescope);
 		} else if (receivedChars[0] == 'D' && receivedChars[1] == 'B'
 				&& receivedChars[2] == 'G') {
 			// DEBUG messages
@@ -262,20 +315,7 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 			}
 		} else if (receivedChars[0] == 'H' && receivedChars[1] == 'L'
 				&& receivedChars[2] == 'P') {
-			Serial.println(":HLP# Print available Commands");
-			Serial.println(":GR# Get Right Ascension");
-			Serial.println(":GD# Get Declination");
-			Serial.println(
-					":Sr,HH:MM:SS# Set Right Ascension; Example: :Sr,12:34:56#");
-			Serial.println(
-					":Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#");
-			Serial.println(":MS# Start Move");
-			Serial.println(":DBGM[0-5]# Move to debug position X");
-			Serial.println(":DBGMIA# Increase Ascension by 1 degree");
-			Serial.println(":DBGMDA# Decrease Ascension by 1 degree");
-			Serial.println(":DBGMID# Increase Declination by 1 degree");
-			Serial.println(":DBGMDD# Decrease Declination by 1 degree");
-			Serial.println(":DBGDM[0-9]# Disable Motors for X seconds");
+			printHelp();
 		} else {
 			Serial.println("ERROR: Unknown command");
 			Serial.println(receivedChars);

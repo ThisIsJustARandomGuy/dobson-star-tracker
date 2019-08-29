@@ -1,12 +1,12 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-// BOARD Config
+// BOARD config
+// Select
 // Only define one of these
 //#define BOARD_ARDUINO_MEGA
 #define BOARD_ARDUINO_UNO
 
-#define STEPPER_INTERRUPT_FREQ 100   // Unit is microseconds; 1.000.000 is one second
 
 /*
  * Azimuth Stepper
@@ -80,34 +80,45 @@
 // Do NOT set to something ridiculously high if your motors are connected or rapid unplanned disassembly of setup may occur
 // DO use this to test your setup, but start with sensible values like 1
 // Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual time. We're actively working on that feature (PR #1)
+// TODO Currently this doesn't work due to the use of the Time.h library.
 const short TIME_FACTOR = 1;
-
-// For a successful build you have to either
-// 1) uncomment this and set the LAT and LNG in the next lines or
-// 2) have a GPS module connected and setup (see GPS section)
-#define GPS_FIXED_POS
-
-#ifdef GPS_FIXED_POS
-#define LAT 47.425011 // Observer latitude in degrees
-#define LNG 12.846258 // Observer longitude in degrees
-
-#define TIMEZONE_CORRECTION_H -2 // Timezone correction to convert to UTC
-#endif /* !GPS_FIXED_POS */
 
 /**
  * ----------------
- * GPS section
- * This whole section is ignored, if GPS_FIXED_POS is enabled in the debug section above.
+ * Position / GPS section
+ *
  * ----------------
  */
-#ifdef GPS_FIXED_POS
 
-#define GPS_SERIAL_PORT Serial1 // Serial 1 TX on Arduino is connected to RX on the GPS module
+// This location is used while initializing the GPS module, or if no GPS module is connected.
+#define LAT 47.425011 // Observer latitude in degrees
+#define LNG 12.846258 // Observer longitude in degrees
 
-#endif /* GPS_FIXED_POS */
+// Timezone correction to convert FROM your current time to UTC. We could use GPS to get this value, but it would be difficult
+// TODO Invert this value as it is confusing to have to set a negative X for the timezone UTC+X
+#define TIMEZONE_CORRECTION_H -2
+
+// Updates from the GPS module are ignored if you uncomment the next line
+// TODO Does not work currently
+#define GPS_FIXED_POS
+
+// Serial 1 TX on Arduino is connected to RX on the GPS module. Z_MIN on the RAMPS shield
+#define GPS_SERIAL_PORT Serial1
+
+// END GPS SECTION
+
+// The stepper interrupts get called every STEPPER_INTERRUPT_FREQ microseconds.
+// 1.000.000 means the interrupt gets called every second. 1.000 means every ms
+// The values below are reasonable for the default motor speeds and the respective boards
+#ifdef BOARD_ARDUINO_MEGA
+#define STEPPER_INTERRUPT_FREQ 500 // every 0.5ms
+#endif
+#ifdef BOARD_ARDUINO_UNO
+#define STEPPER_INTERRUPT_FREQ 100 // every 0.1ms
+#endif
 
 /*
- * Debug macros. These can be ignored
+ * Debug macros. Only change these if you know what you are doing
  */
 #if defined DEBUG && defined DEBUG_SERIAL
 #define DEBUG_PRINT(x)    Serial.print(x)

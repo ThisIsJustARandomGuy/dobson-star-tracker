@@ -25,6 +25,7 @@ public:
 	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps);
 
 	void calculateMotorTargets();
+	//void Dobson::CalculateAltAz(double RA, double Dec, double Lat, double Long);
 
 	void move();
 
