@@ -193,3 +193,39 @@ TelescopePosition& handleGPS(FuGPS &fuGPS) {
 
 	return gpsPosition;
 }
+
+//
+// We can easily calculate the following values, but I'm currently too lazy
+//
+// Index 0 is 2019. Later we need to add 0.5 to this, but we don't so that we can use int here
+const int _days_since_j2k[] = { 6938, 7303, 7669, 8034, 8399, 8764, 9130 };
+
+// Days to the beginning of each month. 0 is January.
+const int _days_to_beginning_of_month_normal_year[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+const int _days_to_beginning_of_month_leap_year[] = { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 };
+
+float days_since_j2k(int year) {
+	if (year < 2019)
+		return 0;
+
+
+	return _days_since_j2k[year - 2019] + 0.5;
+}
+
+// Month parameter starts with 1 = January
+int days_to_beginning_of_month(int year, int month) {
+	bool isLeapYear = true;
+	if (year % 4 != 0) {
+		isLeapYear = false;
+	} else if (year % 100 != 0) {
+		isLeapYear = true;
+	} else if (year % 400 != 0) {
+		isLeapYear = false;
+	}
+	
+	if (isLeapYear) {
+		return _days_to_beginning_of_month_normal_year[month - 1];
+	} else {
+		return _days_to_beginning_of_month_leap_year[month - 1];
+	}
+}

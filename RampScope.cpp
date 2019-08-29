@@ -245,8 +245,10 @@ void loop() {
 		// Start timing the calculation
 		long micros_start = micros();
 
-		// This function converts the coordinates and sends motor move commands
+		// This function converts the coordinates
 		scope.calculateMotorTargets();
+
+		// This actually makes the motors move to their desired target positions
 		scope.move();
 
 #ifdef DEBUG

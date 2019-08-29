@@ -15,6 +15,9 @@ struct RaDecPosition {
 	float declination;
 };
 
+float days_since_j2k(int year);
+int days_to_beginning_of_month(int year, int month);
+
 float deg2rad(float degs);
 
 float rad2deg(float rad);

@@ -15,10 +15,6 @@
 #import "./Dobson.h"
 
 
-// TODO Get rid of these variables!
-const float current_jul_magic_year = 6938.5; // -731.5=1998 //6938.5=2019
-const float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tables
-
 Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps) :
 		_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _gps(gps) {
 	// no code here?
@@ -39,8 +35,8 @@ void Dobson::calculateMotorTargets() {
 	}
 
 	// Julian Days since 2000
-	long jul_days_s2k = (((minute() / 60.0) + hour()) / 24.0) + current_jul_magic_mo + day()
-			+ current_jul_magic_year;
+	long jul_days_s2k = (((minute() / 60.0) + hour()) / 24.0) + days_to_beginning_of_month(year(), month()) + day()
+			+ days_since_j2k(year());
 	// END TIMEKEEPING
 
 	// number of Julian centuaries since Jan 1, 2000, 12 UT
