@@ -12,7 +12,7 @@
  * Azimuth Stepper
  * This is the stepper that rotates the mount horizontally
  */
-#define AZ_ENABLE_PIN       38    // RAMPS 1.4
+#define AZ_ENABLE_PIN       38    // RAMPS 1.4 X stepper
 #define AZ_STEP_PIN         54    // RAMPS 1.4
 #define AZ_DIR_PIN          55    // RAMPS 1.4
 #define AZ_STEPS_PER_REV  119467   // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope. 3200 : 1 and 560 : 15
@@ -23,7 +23,7 @@
  * Altitude stepper
  * This is the stepper that rotates the telescope vertically
  */
-#define ALT_ENABLE_PIN       56  // RAMPS 1.4
+#define ALT_ENABLE_PIN       56  // RAMPS 1.4 Y stepper
 #define ALT_STEP_PIN         60  // RAMPS 1.4
 #define ALT_DIR_PIN          61  // RAMPS 1.4
 #define ALT_STEPS_PER_REV   36960 // 90degrees //147840 // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope 5.18:1 and 3200 : 1 and 105 : 12
@@ -54,7 +54,7 @@
 #define DEBUG
 
 // Uncomment the following line to enable sending debug statements via the serial port
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS

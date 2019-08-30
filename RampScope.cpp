@@ -162,9 +162,9 @@ void setup() {
 #ifdef BOARD_ARDUINO_MEGA
 	Serial.begin(9600);
 #elif defined BOARD_ARDUINO_UNO
-	Serial.begin(115200);
+	Serial.begin(9600);
 #endif
-
+	Serial.println("I'm here");
 	// This initializes the GPS module
 	// TODO Wrap in ifdef
 	initGPS (gps);

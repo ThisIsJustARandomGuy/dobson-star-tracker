@@ -29,11 +29,8 @@ public:
 
 	void move();
 
-
-#ifdef DEBUG
-long _lastCalcMicros = 0;
-bool _didMove = false;
-#endif
+	long _lastCalcMicros = 0;
+	bool _didMove = false;
 
 protected:
 	AccelStepper &_azimuthStepper;
