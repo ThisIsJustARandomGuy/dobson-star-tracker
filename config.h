@@ -1,5 +1,4 @@
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#pragma once
 
 // BOARD config
 // Select
@@ -37,10 +36,10 @@
  * x+ stepper on
  * x- pushbutton
  */
-#define BUZZER_PIN         14 // Uncomment if you have a buzzer installed. Default pin for RAMPS 1.4 is Z_MIN
-#define STEPPERS_ON_PIN    2 // Uncomment if you have a stepper switch installed. Default pin for RAMPS 1.4 is  X_MIN. If this pin is HIGH, the steppers are turned on.
-#define HOME_NOW_PIN       3 // Uncomment if you have a homing mode switch installed. Default pin for RAMPS 1.4 is X_MAX. If this pin is HIGH, homing is performed
-
+#define BUZZER_PIN         14 // Uncomment if you have a buzzer installed. Default pin for RAMPS 1.4 is Y_MIN
+#define STEPPERS_ON_PIN    3  // Uncomment if you have a stepper switch installed. Default pin for RAMPS 1.4 is  X_MIN. If this pin is HIGH, the steppers are turned on.
+#define HOME_NOW_PIN       3  // Uncomment if you have a homing mode switch installed. Default pin for RAMPS 1.4 is X_MAX. If this pin is HIGH, homing is performed
+#define TARGET_SELECT_PIN  2  // Debug button which cycles through a few different targets
 
 /**
  * ----------------
@@ -54,7 +53,7 @@
 #define DEBUG
 
 // Uncomment the following line to enable sending debug statements via the serial port
-//#define DEBUG_SERIAL
+#define DEBUG_SERIAL
 
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS
@@ -168,4 +167,3 @@ const short TIME_FACTOR = 1;
 #define DEBUG_PRINTLN_VV(x)
 #endif
 
-#endif /* CONFIG_H_ */

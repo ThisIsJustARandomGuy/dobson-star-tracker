@@ -1,3 +1,4 @@
+#pragma once
 /*
  * conversion.h
  *
@@ -5,29 +6,20 @@
  *      Author: lukas
  */
 
-#ifndef CONVERSION_H_
-#define CONVERSION_H_
-
-#define DEBUG true
-
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <FuGPS.h>
 
-#include "Mounts/Mount.h"
+#include "./Mount.h"
 #include "location.h"
+
+ // This Macro converts a character to an integer
+#define char_to_int(x) (x - '0')
+// This Macro converts two characters to an integer. Example: ctoi10('2', '3') => 23
+#define multi_char_to_int(x, y) ((x - '0') * 10 + (y - '0'))
+
 
 void initCommunication();
 bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode);
 void receiveCommandChar();
 bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode);
-
-float ecliptic_longitude_sun(float T);
-float deg2rad(float deg);
-float rad2deg(float rad);
-long handleMovement(Mount &telescope, AccelStepper &stepper_azimuth,
-		AccelStepper &stepper_altitude,
-		FuGPS &gps, TelescopePosition &pos,
-		bool justHomed);
-
-#endif /* CONVERSION_H_ */

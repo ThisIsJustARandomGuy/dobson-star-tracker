@@ -1,0 +1,5 @@
+# RampScope build property overrides
+#
+
+
+tools.bossac.upload.pattern="C:\Users\lukas\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.6.1-arduino\serial_reset.bat" && "{path}/{cmd}" {upload.verbose} --port={serial.port.file} -U {upload.native_usb} -e -w {upload.verify} -b "{build.path}/{build.project_name}.bin" -R && "C:\Users\lukas\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.6.1-arduino\serial_reset.bat"

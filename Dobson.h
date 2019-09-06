@@ -10,7 +10,7 @@
 #include <FuGPS.h>
 
 #include "./Mount.h"
-#include "../location.h"
+#include "./location.h"
 #include "./Dobson.h"
 
 
@@ -25,6 +25,7 @@ public:
 	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps);
 
 	void calculateMotorTargets();
+	void interpolatePosition();
 	//void Dobson::CalculateAltAz(double RA, double Dec, double Lat, double Long);
 
 	void move();

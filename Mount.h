@@ -8,7 +8,7 @@
 #ifndef MOUNTS_MOUNT_H_
 #define MOUNTS_MOUNT_H_
 
-#include "../location.h"
+#include "./location.h"
 
 class Mount {
 public:

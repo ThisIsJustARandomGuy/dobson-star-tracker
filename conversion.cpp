@@ -4,18 +4,17 @@
  *  Created on: 03.08.2019
  *      Author: lukas
  */
-#ifndef CONVERSION_H_
-
 #include <Arduino.h>
 #include <AccelStepper.h>
-#include <Time.h>
+#include <TimeLib.h>
 
 #include "./config.h"
 #include "./conversion.h"
 #include "./location.h"
 
 
-// DESIRED COORDINATES. THIS IS IMPORTANT
+// These are the coordinates that the telescope initially thinks it's pointed at.
+// 
 float ra_h = 16;
 float ra_m = 41.7;
 float ra_deg = (ra_h + ra_m / 60) * 15;
@@ -40,7 +39,6 @@ static byte ndx = 0; // Number of command character received
 const char startMarker = ':'; // Commands begin with this character
 const char endMarker = '#'; // Commands end with this character
 
-const double pi = 3.14159265358979324;
 
 void initCommunication() {
 	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m),
@@ -50,37 +48,32 @@ void initCommunication() {
 }
 
 void receiveCommandChar() {
-
 	char rc;
 
 	if (Serial.available() > 0 && newData == false) {
 		rc = Serial.read();
 
 		if (recvInProgress == true) {
-			//Serial.print("ReceivedChar: ");
-			//Serial.println(rc);
 			if (rc != endMarker) {
+				// Command character received
 				receivedChars[ndx] = rc;
 				ndx++;
 				if (ndx >= numChars) {
 					ndx = numChars - 1;
 				}
 			} else {
-				//Serial.println("Got end marker");
+				// End marker received
 				receivedChars[ndx] = '\0'; // terminate the string
 				recvInProgress = false;
 				ndx = 0;
 				newData = true;
 			}
 		} else if (rc == startMarker) {
-			//Serial.println("Got start marker");
+			// Start marker received
 			recvInProgress = true;
 		}
 	}
 }
-
-float last_ra_deg = ra_deg;
-float last_dec_deg = dec_deg;
 
 long positions[2];
 
@@ -92,16 +85,21 @@ long positions[2];
 #define SERIAL_CMD_SET_RIGHT_ASCENSION 4
 #define SERIAL_CMD_SET_DECLINATION     5
 
-float debugPositions[][2] = { { 16.7, 36.5 }, { 16.7, 35.5 },
-		{ 16.7, 37.5 }, {
-		15.7, 36.5 }, { 14.7, 36.5 }, { 17.7, 36.5 }, { 18.7, 36.5 }, { 19.7,
-		36.5 }, { 17.7, 38.5 }, { 17.7, 39.5 } };
-const int maxDebugPos = 9;
+float debugPositions[][2] = {
+	{ ra_deg, dec_deg},
+	{ 37.96241667 , 89.26427778 },    // Polaris
+	{ 279.23541666666, 38.78555556 }, // Vega
+	{ 213.9083333 , 19.17038889 },    // Arktur
+	{ 15.7, 36.5 },
+	{ 14.7, 36.5 },
+	{ 17.7, 36.5 },
+	{ 18.7, 36.5 },
+	{ 19.7, 36.5 },
+	{ 17.7, 38.5 },
+	{ 17.7, 39.5 }
+};
+const int maxDebugPos = sizeof(debugPositions) / (sizeof(debugPositions[0]));
 
-// This Macro converts a character to an integer
-#define char_to_int(x) (x - '0')
-// This Macro converts two characters to an integer. Example: ctoi10('2', '3') => 23
-#define multi_char_to_int(x, y) ((x - '0') * 10 + (y - '0'))
 
 /**
  * Serial commands start
@@ -116,7 +114,7 @@ void printHelp() {
 	Serial.println(":Sr,HH:MM:SS# Set Right Ascension; Example: :Sr,12:34:56#");
 	Serial.println(":Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#");
 	Serial.println(":MS# Start Move");
-	Serial.println(":DBGM[0-5]# Move to debug position X");
+	Serial.print(":DBGM[0-" + String(maxDebugPos - 1) + "]# Move to debug position X");
 	Serial.println(":DBGMIA# Increase Ascension by 1 degree");
 	Serial.println(":DBGMDA# Decrease Ascension by 1 degree");
 	Serial.println(":DBGMID# Increase Declination by 1 degree");
@@ -127,12 +125,28 @@ void printHelp() {
 
 
 // Reports the current right ascension
-void getRightAscension() {
+void getRightAscension(Mount& scope) {
+	float pos = scope.getCurrentPosition().rightAscension / 15;
+
+	int hrs = static_cast<int>(pos);
+	int mins = static_cast<int>((pos - hrs) * 60);
+	int secs = static_cast<int>((pos - (hrs + mins / 60.)) * 3600);
+
+	sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
+
 	Serial.print(txAR);
 }
 
 // Reports the current declination
-void getDeclination() {
+void getDeclination(Mount &scope) {
+	float pos = scope.getCurrentPosition().declination / 360;
+
+	int deg = static_cast<int>(pos);
+	int mins = static_cast<int>((pos - deg) * 60);
+	int secs = static_cast<int>((pos - (deg + mins / 60.)) * 3600);
+
+	sprintf(txDEC, "%c%02d%c%02d:%02d#", deg > 0 ? '+' : '-', deg, 223, mins, secs);
+
 	Serial.print(txDEC);
 }
 
@@ -173,8 +187,6 @@ void setRightAscension(Mount &telescope) {
 	// This is what we return to Stellarium when it asks for the current right ascension
 	sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
 
-	// This is our ultimate target value
-	last_ra_deg = ra_deg;
 	//ra_deg = 360. * (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
 	ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
 
@@ -196,8 +208,6 @@ void setDeclination(Mount &telescope) {
 
 	sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], deg, 223, mins, secs);
 
-	last_dec_deg = dec_deg;
-
 	dec_deg = multi * (deg + mins / 60. + secs / 3600.);
 	isPositiveDeclination = multi > 0;
 
@@ -216,10 +226,10 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			// GR: Get Right Ascension
-			getRightAscension();
+			getRightAscension(telescope);
 		} else if (receivedChars[0] == 'G' && receivedChars[1] == 'D') {
 			// GD: Get Declination
-			getDeclination();
+			getDeclination(telescope);
 		} else if (receivedChars[0] == 'Q') {
 			// Quit the current move
 			moveQuit();
@@ -265,7 +275,7 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 										"Sub 1 deg declination");
 					}
 				} else {
-				// Debug move to position stored in debugPositions[targetIndex]
+					// Debug move to position stored in debugPositions[targetIndex]
 					int targetIndex = char_to_int(receivedChars[4]);
 					if (targetIndex > maxDebugPos) {
 						Serial.println("Invalid index");
@@ -326,53 +336,36 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 }
 
 // Returns true if homing command was sent
+int lastDebugIndex = -1;
+long lastDbgIndexSwitch = 0;
+bool dbgBtnPressed = false;
 bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
 	receiveCommandChar();
-	return parseCommands(telescope, gps, homingMode);
+	bool ret = parseCommands(telescope, gps, homingMode);
+	if (!dbgBtnPressed && digitalRead(TARGET_SELECT_PIN) == LOW) {
+		// Only one button klick per 0.5 seconds is valid
+		if (lastDbgIndexSwitch + 500 < millis()) {
+			lastDbgIndexSwitch = millis();
+			Serial.println("Switching target to " + String((lastDebugIndex + 1)));
+			dbgBtnPressed = true;
+			lastDebugIndex = (lastDebugIndex + 1) % 10;
+			ra_deg = debugPositions[lastDebugIndex][0] * 15;
+			dec_deg = debugPositions[lastDebugIndex][1];
+			RaDecPosition newPos = { debugPositions[lastDebugIndex][0] * 15, debugPositions[lastDebugIndex][1] };
+			telescope.setTarget(newPos);
+
+			// Confirmation buzz
+			#ifdef BUZZER_PIN
+				digitalWrite(BUZZER_PIN, HIGH);
+				delay(500);
+				digitalWrite(BUZZER_PIN, LOW);
+			#endif
+		}
+	}
+	if (dbgBtnPressed && digitalRead(TARGET_SELECT_PIN) == HIGH) {
+		// Button released
+		dbgBtnPressed = false;
+	}
+
+	return ret;
 }
-
-
-// According to http://www.geoastro.de/elevaz/basics/index.htm
-const long timeLast = 0;
-
-//#ifdef GPS_FIXED_POS
-long current_lat = LAT;
-long current_lng = LNG;
-//#else
-// GPS CODE ensues
-//#endif
-
-
-float deg2rad(float degs) {
-	return degs * pi / 180;
-}
-
-float rad2deg(float rad) {
-	return rad * 180 / pi;
-}
-
-volatile float rlyaz = 0;
-volatile float rlydec = 0;
-
-// Stepper positions when homing was performed
-long home_az = 0;
-long home_alt = 0;
-
-// The last reported positions
-long last_reported_az = 0;
-long last_reported_dec = 0;
-
-long last_desired_az = 0;  // Last azimuth (IN STEPS) we desired
-long last_desired_dec = 0; // Last declination (IN STEPS) we desired
-
-
-long current_year = 2019;
-long current_month = 8;
-// TODO!!!!!
-// This needs to be addressed next. We need to create (e.g. copy) either a table containing
-// these values, or we need to calculate them
-float current_jul_magic_year = 6938.5; // -731.5=1998 //6938.5=2019
-float current_jul_magic_mo = 212; // 212=August. This is why we need lookup tables
-
-
-#endif
