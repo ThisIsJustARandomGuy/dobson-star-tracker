@@ -121,6 +121,12 @@ void Dobson::calculateMotorTargets() {
 #endif
 }
 
+
+/*
+ * This method gets executed every 10.000 loop iterations right after Dobson::calculateMotorTargets() was called.
+ * It checks whether the telescope is homed. If it is NOT homed, it sets the target as its current motor positions and sets _isHomed to true.
+ * The next time the method gets called, _isHomed is true , and the stepper motors are actually moved to their new required position.
+ */
 void Dobson::move() {
 	long micros_after_move = 0;
 	if (!_isHomed) {
@@ -134,11 +140,14 @@ void Dobson::move() {
 		_azimuthStepper.setCurrentPosition(_steppersTarget.azimuth);
 		_altitudeStepper.setCurrentPosition(_steppersTarget.altitude);
 
+		// Store where the motors were homed, in case we need to move back to the original position.
 		_steppersHomed = { _steppersTarget.azimuth, _steppersTarget.altitude };
+		// Store the last target for later comparisons.
 		_steppersLastTarget = { _steppersTarget.azimuth, _steppersTarget.altitude };
 
-			// Homing was performed
+		// Homing was performed
 		_isHomed = true;
+		// Homing was performed in this iteration. In the next loop iteration this value can be used, but then it gets set to false again
 		_homedLastIteration = true;
 	} else {
 		_homedLastIteration = false;
@@ -146,19 +155,19 @@ void Dobson::move() {
 		_azimuthStepper.moveTo(_steppersTarget.azimuth);
 		_altitudeStepper.moveTo(_steppersTarget.altitude);
 
-		// Caclulate a new interpolated position
+		// Caclulate the new RA/DEC position
 		interpolatePosition();
 
-		// From here on only debug outputs happen
+		// This if statement is wholly for debug debug reasons. There is more code at the end of the method
 		if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0
-				|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0) {
+			|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0) {
 			micros_after_move = micros();
 
 			DEBUG_PRINT_V(
-					_gps.hasFix() ?
-							"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
-									+ String(_gps.Latitude, 6) + "LAT / " + String(_gps.Longitude, 6) + "LNG" :
-							"GPS: N/A");
+				_gps.hasFix() ?
+				"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
+				+ String(_gps.Latitude, 6) + "LAT / " + String(_gps.Longitude, 6) + "LNG" :
+				"GPS: N/A");
 			DEBUG_PRINT("; LAT ");
 			DEBUG_PRINT(_gpsPosition.latitude);
 			DEBUG_PRINT(", LNG ");
@@ -189,9 +198,10 @@ void Dobson::move() {
 			DEBUG_PRINT(_azimuthStepper.currentPosition());
 			DEBUG_PRINT("/dec ");
 			DEBUG_PRINT(_altitudeStepper.currentPosition());
-		}
+		} // End of debug if statement
 	}
 
+	// If a move was performed, store the last target value and set _didMove to true to indicate that a move took place this loop iteration
 	if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0
 			|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0) {
 		_steppersLastTarget.azimuth = _steppersTarget.azimuth;
@@ -203,7 +213,10 @@ void Dobson::move() {
 }
 
 
-// Calculate new motor targets. This does not yet execute the move
+/*
+ * This method calculates the current position in RA/DEC, based on the position of the stepper motors.
+ * // TODO Document this a bit better
+ */
 void Dobson::interpolatePosition() {
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since execution started
 
@@ -254,31 +267,32 @@ void Dobson::interpolatePosition() {
 	while (Azimuth >= 360.) {
 		Azimuth -= 360.;
 	}
-	
-	DEBUG_PRINT("Altitude: ");
-	DEBUG_PRINT(Altitude);
-	DEBUG_PRINT("; Azimuth: ");
-	DEBUG_PRINT(Azimuth);
 
 	// Convert Altitude and Azimuth to Radians
 	Altitude = radians(Altitude);
 	Azimuth = radians(Azimuth);
 
-
+	// These are the important calculations. 
+	// TODO 
 	double Declination = degrees(asin(sin(Altitude) * sin(radians(_gpsPosition.latitude)) + cos(Altitude) * cos(radians(_gpsPosition.latitude)) * cos(Azimuth)));
 	//double HourAngle = asin(-sin(Azimuth) * cos(Altitude) / cos(Declination));
 	double HourAngle = degrees(acos((sin(Altitude) - sin(Declination) * sin(radians(_gpsPosition.latitude))) / (cos(Declination) * cos(radians(_gpsPosition.latitude)))));
 	double RightAscension = local_siderian_time - HourAngle;
 
-	DEBUG_PRINT("; RightAscension: ");
-	DEBUG_PRINT(String(RightAscension, 2));
-	DEBUG_PRINT("; Declination: ");
-	DEBUG_PRINTLN(String(Declination, 2));
-	
+	// This stores the current position so that it can get reported correctly.
 	_currentPosition = {
 		RightAscension,
 		Declination
 	};
 
-	return;
+	// From here on only debug outputs happen in this method
+	DEBUG_PRINT("Altitude: ");
+	DEBUG_PRINT(degrees(Altitude));
+	DEBUG_PRINT("; Azimuth: ");
+	DEBUG_PRINT(degrees(Azimuth));
+
+	DEBUG_PRINT("; RightAscension: ");
+	DEBUG_PRINT(String(RightAscension, 2));
+	DEBUG_PRINT("; Declination: ");
+	DEBUG_PRINTLN(String(Declination, 2));
 }

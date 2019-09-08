@@ -27,8 +27,8 @@ boolean isPositiveDeclination = false;
 
 boolean isHomed = false;
 
-char txAR[10]; // Gets reported to stellarium when it asks for right ascension "16:41:34#";
-char txDEC[11]; // Same as above with declination. sprintf(txDEC, "+36d%c28:%02d#", 223, int(dec_m), 0);
+char txAR[10]; // Gets reported to stellarium when it asks for right ascension. Example: "16:41:34#"
+char txDEC[11]; // Same as above with declination. Example: "+36d%c28:%02d#"
 
 const byte numChars = 32;
 char receivedChars[numChars];
@@ -41,42 +41,53 @@ const char endMarker = '#'; // Commands end with this character
 
 
 void initCommunication() {
-	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m),
-			int(0));
-	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223,
-			int(dec_m), int(0));
+	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m), int(0));
+	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223, int(dec_m), int(0));
 }
 
+/*
+ * Every loop iteration this function checks if a new character is available from the Serial interface. It only reads the
+ * character if the variable newData is set to false. It then tries to read a complete command (1 char per loop iteration).
+ * When a command is complete, this function sets newData to true. Later on in the loop iteration the parseCommands function,
+ * which tries to parse and execute the command, gets called. After command execution the newData variable is reset to false
+ */
 void receiveCommandChar() {
-	char rc;
-
 	if (Serial.available() > 0 && newData == false) {
-		rc = Serial.read();
+		// Read the next character
+		char rc = Serial.read();
 
+		// Here we check if the command start marker has already been read in a previous loop iteration.
 		if (recvInProgress == true) {
+			// If the character is NOT the end marker, we treat it as part of the command, regardless of what it is
 			if (rc != endMarker) {
-				// Command character received
+				// Here we store the next character in the receivedChars array.
 				receivedChars[ndx] = rc;
 				ndx++;
+				// This prevents the receivedChars array from overflowing
 				if (ndx >= numChars) {
 					ndx = numChars - 1;
 				}
 			} else {
-				// End marker received
-				receivedChars[ndx] = '\0'; // terminate the string
+				// End marker received, so the command is completely stored in receivedChars
+				// Set the last value to \0 to terminate the string
+				receivedChars[ndx] = '\0';
+				// Set recvInProgress to false, so that next time a character is received we check for the start marker again
 				recvInProgress = false;
+				// Reset ndx to 0 so that next time we read a command it gets stored at the start of the receivedChars array again
 				ndx = 0;
+				// This signals to the parseCommands function that a complete command is now stored in receivedChars.
 				newData = true;
 			}
 		} else if (rc == startMarker) {
-			// Start marker received
+			// Start marker received. Set recvInProgress to false, so that next time we check for the end marker or a command character
 			recvInProgress = true;
 		}
 	}
 }
 
-long positions[2];
 
+
+// These will eventually be placeholders for a better looking command parser. Currently these do nothing
 #define SERIAL_CMD_INVALID_COMMAND     -1
 #define SERIAL_CMD_GET_RIGHT_ASCENSION 0
 #define SERIAL_CMD_GET_DECLINATION     1
@@ -85,6 +96,8 @@ long positions[2];
 #define SERIAL_CMD_SET_RIGHT_ASCENSION 4
 #define SERIAL_CMD_SET_DECLINATION     5
 
+
+// These are the positions that can be cycled through with the position switch
 float debugPositions[][2] = {
 	{ ra_deg, dec_deg},
 	{ 37.96241667 , 89.26427778 },    // Polaris
