@@ -28,7 +28,7 @@ This project aims to enable makers to motorize their dobson-style mounted telesc
 
 The Most important TODOs are as follows (in no particular order)
 + Documentation
-+ Board compatibility: Out-of-the-box support for Arduino Mega and Arduino Due with their respective RAMPS shields
++ Board compatibility: Out-of-the-box support for Arduino Mega and Arduino Due with their respective RAMPS shields (Mostly done, Mega + RAMPS 1.4 and Due + modified RAMPS 1.4 work)
 + GPS: Reliably read the time from GPS
 + Time keeping: Handle big swings which could happen due to GPS issues
 + EEPROM: Store time and location in EEPROM (Mega) or Flash (Due); Provide a simple API for doing so
