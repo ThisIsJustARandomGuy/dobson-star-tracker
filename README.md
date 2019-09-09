@@ -9,6 +9,12 @@ This project aims to enable makers to motorize their dobson-style mounted telesc
 + Optional: Two Buttons; Each requires one additional digital pin
 + Optional: A GPS module; Requires either a free TX/RX pin pair or two digital pins
 
+## 3D Files
+
+The printable files can be found at: https://www.thingiverse.com/thing:3851307
+
+These include .stl and .step files
+
 ## Serial Commands
 + :HLP# Print available Commands
 + :GR# Get Right Ascension
