@@ -9,10 +9,10 @@
 #include <FuGPS.h>
 #include <Time.h>
 
-#import "./config.h"
+#include "./config.h"
 #include "./location.h"
 
-#import "./Dobson.h"
+#include "./Dobson.h"
 
 
 Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps) :
@@ -24,97 +24,39 @@ Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGP
 void Dobson::calculateMotorTargets() {
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since execution started
 
-	// Current time in UTC with hour rollover
-	float current_utc = (hour() + TIMEZONE_CORRECTION_H) + (minute() / 60.0) + (second() / 3600.0);
+	// Get the local sidereal time and store it in a private value (it gets referenced by the interpolatePosition method)
+	_currentLocalSiderealTime = get_local_sidereal_time(_gpsPosition.longitude);
+	
+	// The hour angle is the difference between the local sidereal timeand the right ascension in degrees of the target object.
+	// This immediately calculates this cosine, because that's all we need later on.
+	const double CosHourAngle = cos(radians(get_hour_angle(_currentLocalSiderealTime, _target.rightAscension)));
 
-	while (current_utc < 0) {
-		current_utc += 24.;
-	}
-	while (current_utc >= 24) {
-		current_utc -= 24.;
-	}
+	// Target declination in radians
+	const double RadTargetDeclination = radians(_target.declination);
+	// Cosine of the target declination
+	const double CosTargetDeclination = cos(RadTargetDeclination);
+	// Sine of the target declination
+	const double SinTargetDeclination = sin(RadTargetDeclination);
 
-	// Julian Days since 2000
-	// TODO What happens to this, if current_utc gets modified by one of the loops above? day() would stay the same
-	double jul_days_s2k = (((second() / 3600.0) + (minute() / 60.0) + hour()) / 24.0) + days_to_beginning_of_month(year(), month()) + day() + days_since_j2k(year());
-	// END TIMEKEEPING
-
-	// number of Julian centuaries since Jan 1, 2000, 12 UT
-	const double jul_centuaries = jul_days_s2k / 36525.;
-
-	// calculate the local siderian time (in degrees)
-	double local_siderian_time = 100.46061837 + (15. * 0.06570982441908) * jul_days_s2k + _gpsPosition.longitude + (15. * 1.00273790935) * current_utc + (15. * 0.000026 * jul_centuaries * jul_centuaries);
-
-	// Ensure that local_siderian_time is greater than 0 degrees
-	while (local_siderian_time < 0) {
-		local_siderian_time += 360.0;
-	}
-	while (local_siderian_time >= 0) {
-		local_siderian_time -= 360.0;
-	}
-
-	// The hour angle is the difference between the local siderian time and the right ascension in degrees of our target object...
-	double hour_angle = local_siderian_time - _target.rightAscension;
-	// ...but we need to ensure that it's greater than 0
-	while (hour_angle < 0) {
-		hour_angle += 360.0; // Maybe this is buggy
-	}
-	while (hour_angle >= 360) {
-		hour_angle -= 360.0; // Maybe this is buggy
-	}
-
+	// Current latitude in radians
+	const double RadGpsLatitude = radians(_gpsPosition.latitude);
+	// Cosine of the current latitude
+	const double CosGpsLatitude = cos(RadGpsLatitude);
+	// Sine of the current latitude
+	const double SinGpsLatitude = sin(RadGpsLatitude);
 
 	// Trust me, this works
-	_altitudeDegrees = degrees(asin(sin(radians(_target.declination)) * sin(radians(_gpsPosition.latitude)) + cos(radians(_target.declination)) * cos(degrees(_gpsPosition.latitude)) * cos(radians(hour_angle))));
-	_azimuthDegrees = degrees( acos(( sin(radians(_target.declination)) - sin(radians(_gpsPosition.latitude)) * sin(radians(_altitudeDegrees)) ) / (cos(radians(_gpsPosition.latitude)) * cos(radians(_altitudeDegrees))) ));
+	const double targetAltitudeDegrees = degrees(asin( SinTargetDeclination * SinGpsLatitude + CosTargetDeclination * CosGpsLatitude * CosHourAngle ));
+
+	_targetDegrees = {
+		degrees( acos( ( SinTargetDeclination - SinGpsLatitude * sin(radians(targetAltitudeDegrees)) ) / (CosGpsLatitude * cos(radians(targetAltitudeDegrees))) ) ), // Azimuth
+		targetAltitudeDegrees // Altitude
+	};
 
 	_steppersTarget = {
-		(long)((_azimuthDegrees / 360.0) * AZ_STEPS_PER_REV), // Azimuth
-		(long)((_altitudeDegrees / 360.0) * ALT_STEPS_PER_REV) // Altitude
+		(long)((_targetDegrees.azimuth / 360.0) * AZ_STEPS_PER_REV), // Azimuth
+		(long)((_targetDegrees.altitude / 360.0) * ALT_STEPS_PER_REV) // Altitude
 	};
-
-	return;
-
-
-	// Convert various values from degrees to radians since the trigonometry functions work with radians
-	const double rad_declination = radians(_target.declination);
-	const double rad_current_lat = radians(_gpsPosition.latitude); // TODO this can be a constant if GPS_FIXED_POS is set
-	const double rad_hour_angle = radians(hour_angle);
-
-	// These values are used multiple times throughout calculations, so we pull them out
-	const double sin_rad_declination = sin(rad_declination);
-	const double sin_rad_current_lat = sin(rad_current_lat);
-	const double cos_rad_current_lat = cos(rad_current_lat);
-
-	// Calculate altitude
-	const double sin_altitude = sin_rad_declination * sin_rad_current_lat
-			+ cos(rad_declination) * cos_rad_current_lat * cos(rad_hour_angle);
-
-	const double rad_altitude = asin(sin_altitude);
-
-	// This is our resulting altitude in degrees
-	_altitudeDegrees = degrees(rad_altitude); // RESULT
-
-	// Calculate azimuth
-	const double cos_azimuth = (sin_rad_declination - sin(rad_altitude) * sin_rad_current_lat)
-			/ (cos(rad_altitude) * cos_rad_current_lat);
-	const double azimuth_degrees = degrees(acos(cos_azimuth));
-
-	// Azimuth in degrees is either 360-a or a, depending on whether sin(rad_hour_angle) is positive.
-	// It be like it is and it's also the second part of the result
-	// TODO This is buggy. When az=-57.3
-	/*if (sin(rad_hour_angle) > 0) {
-		_azimuthDegrees = 360.0 - azimuth_degrees;
-	} else {*/
-		_azimuthDegrees = azimuth_degrees;
-	//}
-
-	// TODO Is it really necessary to have it this complex? No
-	_steppersTarget = { 
-		(long) ((_azimuthDegrees / 360.0) * AZ_STEPS_PER_REV), // Azimuth
-		(long) ((_altitudeDegrees / 360.0) * ALT_STEPS_PER_REV) // Altitude
-	};
-
 
 #ifdef DEBUG
 	_lastCalcMicros = micros();
@@ -177,9 +119,9 @@ void Dobson::move() {
 			DEBUG_PRINT(" and DEC ");
 			DEBUG_PRINT(_target.declination);
 			DEBUG_PRINT(" to ALTAZ is: AZ ");
-			DEBUG_PRINT(_azimuthDegrees);
+			DEBUG_PRINT(_targetDegrees.azimuth);
 			DEBUG_PRINT("° ALT ");
-			DEBUG_PRINT(_altitudeDegrees);
+			DEBUG_PRINT(_targetDegrees.altitude);
 			DEBUG_PRINT("°; The time is: ");
 			DEBUG_PRINT(hour());
 			DEBUG_PRINT(":");
@@ -220,38 +162,10 @@ void Dobson::move() {
 void Dobson::interpolatePosition() {
 	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since execution started
 
-	// Current time in UTC with hour rollover
-	double current_utc = (hour() + TIMEZONE_CORRECTION_H) + (minute() / 60.0) + (second() / 3600.0);
-
-	while (current_utc < 0) {
-		current_utc += 24;
-	}
-	while (current_utc >= 24) {
-		current_utc -= 24;
-	}
-
-	// Julian Days since 2000
-	// TODO What happens to this, if current_utc gets modified by one of the loops above? day() would stay the same
-	double jul_days_s2k = (((second() / 3600.0) + (minute() / 60.0) + hour()) / 24.0) + days_to_beginning_of_month(year(), month()) + day()
-		+ days_since_j2k(year());
-	// END TIMEKEEPING
-
-	// number of Julian centuaries since Jan 1, 2000, 12 UT
-	const double jul_centuaries = jul_days_s2k / 36525.;
-
-	// calculate the local siderian time (in degrees)
-	double local_siderian_time = 100.46061837 + (15. * 0.06570982441908) * jul_days_s2k + _gpsPosition.longitude + (15. * 1.00273790935) * current_utc + (15. * 0.000026 * jul_centuaries * jul_centuaries);
-
-	// Ensure that local_siderian_time is greater than 0 degrees
-	while (local_siderian_time < 0.) {
-		local_siderian_time += 360.;
-	}
-	while (local_siderian_time >= 360.) {
-		local_siderian_time -= 360.;
-	}
-
 	// Calculate Altitude in Degrees
-	double Altitude = _altitudeDegrees;
+	const double altsteps = ALT_STEPS_PER_REV;
+	double Altitude = (_altitudeStepper.currentPosition() / ALT_STEPS_PER_REV) * 360.;
+
 	while (Altitude < 0) {
 		Altitude += 360.;
 	}
@@ -259,8 +173,10 @@ void Dobson::interpolatePosition() {
 		Altitude -= 360.;
 	}
 
-	// Calculate Azimuth in Degrees
-	double Azimuth = _azimuthDegrees;
+	// Azimuth in Degrees
+	double Azimuth = (_azimuthStepper.currentPosition() / AZ_STEPS_PER_REV) * 360.;
+
+	// Ensure that it is 
 	while (Azimuth < 0.) {
 		Azimuth += 360.;
 	}
@@ -272,12 +188,23 @@ void Dobson::interpolatePosition() {
 	Altitude = radians(Altitude);
 	Azimuth = radians(Azimuth);
 
+	// Store some values that are needed later on
+
+	// Sine of the current altitude
+	const double SinAltitude = sin(Altitude);
+
+	// Current latitude in radians
+	const double RadGpsLatitude = radians(_gpsPosition.latitude);
+	// Cosine of the current latitude
+	const double CosGpsLatitude = cos(RadGpsLatitude);
+	// Sine of the current latitude
+	const double SinGpsLatitude = sin(RadGpsLatitude);
+
 	// These are the important calculations. 
-	// TODO 
-	double Declination = degrees(asin(sin(Altitude) * sin(radians(_gpsPosition.latitude)) + cos(Altitude) * cos(radians(_gpsPosition.latitude)) * cos(Azimuth)));
+	double Declination = degrees(asin(SinAltitude * SinGpsLatitude + cos(Altitude) * CosGpsLatitude * cos(Azimuth)));
 	//double HourAngle = asin(-sin(Azimuth) * cos(Altitude) / cos(Declination));
-	double HourAngle = degrees(acos((sin(Altitude) - sin(Declination) * sin(radians(_gpsPosition.latitude))) / (cos(Declination) * cos(radians(_gpsPosition.latitude)))));
-	double RightAscension = local_siderian_time - HourAngle;
+	double HourAngle = degrees(acos((SinAltitude - sin(Declination) * SinGpsLatitude) / (cos(Declination) * CosGpsLatitude)));
+	double RightAscension = _currentLocalSiderealTime - HourAngle;
 
 	// This stores the current position so that it can get reported correctly.
 	_currentPosition = {

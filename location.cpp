@@ -204,7 +204,7 @@ const int _days_since_j2k[] = { 6938, 7303, 7669, 8034, 8399, 8764, 9130 };
 const int _days_to_beginning_of_month_normal_year[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
 const int _days_to_beginning_of_month_leap_year[] = { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 };
 
-float days_since_j2k(int year) {
+int days_since_j2k(int year) {
 	if (year < 2019)
 		return 0;
 
@@ -228,4 +228,64 @@ int days_to_beginning_of_month(int year, int month) {
 	} else {
 		return _days_to_beginning_of_month_leap_year[month - 1];
 	}
+}
+
+double get_local_sidereal_time(const double degrees_longitude) {
+	// Current day in UTC (rollover is computed in the loops below)
+	double current_utc_day = day();
+	// Current hour in UTC (rollover is computed in the loops below)
+	double current_utc_hour = hour() + TIMEZONE_CORRECTION_H;
+	// Current time in UTC (rollover is computed in the loops below)
+	double current_utc = (current_utc_hour)+(minute() / 60.0) + (second() / 3600.0);
+
+	// Ensure that UTC time is between 0 and 24
+	while (current_utc < 0) {
+		current_utc += 24;
+		current_utc_hour += 24;
+		current_utc_day -= 1;
+	}
+	while (current_utc >= 24) {
+		current_utc -= 24;
+		current_utc_hour -= 24;
+		current_utc_day += 1;
+	}
+
+	// Computes the Julian Days since 2000
+	// TODO What happens to this, if current_utc gets modified by one of the loops above? day() would stay the same
+	double jul_days_s2k = (((second() / 3600.0) + (minute() / 60.0) + current_utc_hour) / 24.0) + days_to_beginning_of_month(year(), month()) + current_utc_day
+		+ days_since_j2k(year());
+	// END TIMEKEEPING
+
+	// number of Julian centuaries since Jan 1, 2000, 12 UT
+	const double jul_centuaries = jul_days_s2k / 36525.;
+
+	// calculate the local sidereal time (in degrees)
+	double local_sidereal_time = 100.46061837 + (15. * 0.06570982441908) * jul_days_s2k + degrees_longitude + (15. * 1.00273790935) * current_utc + (15. * 0.000026 * jul_centuaries * jul_centuaries);
+
+	// Ensure that local_sidereal_time is greater than 0 degrees
+	while (local_sidereal_time < 0.) {
+		local_sidereal_time += 360.;
+	}
+	while (local_sidereal_time >= 360.) {
+		local_sidereal_time -= 360.;
+	}
+
+	return local_sidereal_time;
+}
+
+/*
+ * The hour angle is the difference between the local sidereal timeand the right ascension in degrees of the target object
+ */
+double get_hour_angle(const double local_sidereal_time, const double degrees_right_ascension) {
+	// This is the return value
+	double hour_angle = local_sidereal_time - degrees_right_ascension;
+	// ...but we need to ensure that it's greater than 0
+	while (hour_angle < 0) {
+		hour_angle += 360.0; // Maybe this is buggy
+	}
+	while (hour_angle >= 360) {
+		hour_angle -= 360.0; // Maybe this is buggy
+	}
+
+	return hour_angle;
 }
