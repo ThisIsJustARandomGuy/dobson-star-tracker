@@ -11,24 +11,24 @@ This project aims to enable makers to motorize their dobson-style mounted telesc
 
 ## 3D Files
 
-The printable files can be found at: https://www.thingiverse.com/thing:3851307
-
-These include .stl and .step files
+The printable files (stl and step format) can be found at: https://www.thingiverse.com/thing:3851307
 
 ## Serial Commands
 + :HLP# Print available Commands
-+ :GR# Get Right Ascension
-+ :GD# Get Declination
-+ :Sr,HH:MM:SS# Set RA; Example: :Sr,12:34:56#
-+ :Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#
-+ :MS# Start Move
-+ :Q# Quit Move (Not Implemented)
-+ :DBGM[0-5]# Move to debug position X
-+ :DBGMIA# Increase Ascension by 1 degree
-+ :DBGMDA# Decrease Ascension by 1 degree
-+ :DBGMID# Increase Declination by 1 degree
-+ :DBGMDD# Decrease Declination by 1 degree
-+ :DBGDM[0-9]# Disable Motors for X seconds
++ Commands used by stellarium (you can use them as well)
+  + :GR# Get Right Ascension
+  + :GD# Get Declination
+  + :Sr,HH:MM:SS# Set Right Ascension; Example: :Sr,12:34:56#
+  + :Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#
+  + :MS# Start Move
+  + :Q# Quit Move (Not Implemented)
++ Debug commands
+  + :DBGDM[0-9]# Disable Motors for X seconds
+  + :DBGM[0-9]# Move to debug position X (see conversion.cpp; Later we will have a separate file with a star catalogue)
+  + :DBGMIA# Increase Right Ascension by 1 degree
+  + :DBGMDA# Decrease Right Ascension by 1 degree
+  + :DBGMID# Increase Declination by 1 degree
+  + :DBGMDD# Decrease Declination by 1 degree
 
 ## TODOs
 
