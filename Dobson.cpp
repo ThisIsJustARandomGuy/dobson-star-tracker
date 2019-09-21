@@ -47,15 +47,16 @@ void Dobson::calculateMotorTargets() {
 
 	// Trust me, this works
 	const double targetAltitudeDegrees = degrees(asin( SinTargetDeclination * SinGpsLatitude + CosTargetDeclination * CosGpsLatitude * CosHourAngle ));
+	const double targetAzimuthDegrees = degrees(acos((SinTargetDeclination - SinGpsLatitude * sin(radians(targetAltitudeDegrees))) / (CosGpsLatitude * cos(radians(targetAltitudeDegrees)))));
 
 	_targetDegrees = {
-		degrees( acos( ( SinTargetDeclination - SinGpsLatitude * sin(radians(targetAltitudeDegrees)) ) / (CosGpsLatitude * cos(radians(targetAltitudeDegrees))) ) ), // Azimuth
+		targetAzimuthDegrees, // Azimuth
 		targetAltitudeDegrees // Altitude
 	};
 
 	_steppersTarget = {
-		(long)((_targetDegrees.azimuth / 360.0) * AZ_STEPS_PER_REV), // Azimuth
-		(long)((_targetDegrees.altitude / 360.0) * ALT_STEPS_PER_REV) // Altitude
+		(long)((_targetDegrees.azimuth * AZ_STEPS_PER_REV) / 360.0), // Azimuth
+		(long)((_targetDegrees.altitude * ALT_STEPS_PER_REV) / 360.0) // Altitude
 	};
 
 #ifdef DEBUG
@@ -101,8 +102,8 @@ void Dobson::move() {
 		interpolatePosition();
 
 		// This if statement is wholly for debug debug reasons. There is more code at the end of the method
-		if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0
-			|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0) {
+		if (abs(_steppersLastTarget.azimuth - _steppersTarget.azimuth) > 0.0
+			|| abs(_steppersLastTarget.altitude - _steppersTarget.altitude) > 0.0) {
 			micros_after_move = micros();
 
 			DEBUG_PRINT_V(
@@ -144,8 +145,8 @@ void Dobson::move() {
 	}
 
 	// If a move was performed, store the last target value and set _didMove to true to indicate that a move took place this loop iteration
-	if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0
-			|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0) {
+	if (abs(_steppersLastTarget.azimuth - _steppersTarget.azimuth) > 0.0
+			|| abs(_steppersLastTarget.altitude - _steppersTarget.altitude) > 0.0) {
 		_steppersLastTarget.azimuth = _steppersTarget.azimuth;
 		_steppersLastTarget.altitude = _steppersTarget.altitude;
 		_didMove = true;
@@ -164,24 +165,24 @@ void Dobson::interpolatePosition() {
 
 	// Calculate Altitude in Degrees
 	const double altsteps = ALT_STEPS_PER_REV;
-	double Altitude = (_altitudeStepper.currentPosition() / ALT_STEPS_PER_REV) * 360.;
+	double Altitude = (_altitudeStepper.currentPosition() / ((double)ALT_STEPS_PER_REV)) * 360.00;
 
-	while (Altitude < 0) {
+	while (Altitude < 0.0) {
 		Altitude += 360.;
 	}
-	while (Altitude >= 360.) {
+	while (Altitude >= 360.0) {
 		Altitude -= 360.;
 	}
 
 	// Azimuth in Degrees
-	double Azimuth = (_azimuthStepper.currentPosition() / AZ_STEPS_PER_REV) * 360.;
+	double Azimuth = (_azimuthStepper.currentPosition() / ((double)AZ_STEPS_PER_REV)) * 360.00;
 
-	// Ensure that it is 
-	while (Azimuth < 0.) {
-		Azimuth += 360.;
+	// Ensure that it is between 0 and 360
+	while (Azimuth < 0.0) {
+		Azimuth += 360.0;
 	}
-	while (Azimuth >= 360.) {
-		Azimuth -= 360.;
+	while (Azimuth >= 360.0) {
+		Azimuth -= 360.0;
 	}
 
 	// Convert Altitude and Azimuth to Radians
@@ -201,10 +202,31 @@ void Dobson::interpolatePosition() {
 	const double SinGpsLatitude = sin(RadGpsLatitude);
 
 	// These are the important calculations. 
-	double Declination = degrees(asin(SinAltitude * SinGpsLatitude + cos(Altitude) * CosGpsLatitude * cos(Azimuth)));
-	//double HourAngle = asin(-sin(Azimuth) * cos(Altitude) / cos(Declination));
-	double HourAngle = degrees(acos((SinAltitude - sin(Declination) * SinGpsLatitude) / (cos(Declination) * CosGpsLatitude)));
+
+	// Declination is kept in radians for now, but will be converted to degrees a few lines below
+	double Declination = (asin(SinAltitude * SinGpsLatitude + cos(Altitude) * CosGpsLatitude * cos(Azimuth)));
+	// Hour angle in degrees
+	double HourAngle = degrees(asin(((0.0-sin(Azimuth)) * cos(Altitude)) / cos(Declination)));
+
+	// The resulting Right Ascension is LST - HA
 	double RightAscension = _currentLocalSiderealTime - HourAngle;
+
+	// We can also convert Declination to degrees, since it's not needed in calculations anymore
+	Declination = degrees(Declination);
+
+	// Ensure that RightAscension and Declination are between 0 and 360
+	while (RightAscension < 0.0) {
+		RightAscension += 360.0;
+	}
+	while (RightAscension >= 360.0) {
+		RightAscension -= 360.0;
+	}
+	while (Declination < 0.0) {
+		Declination += 360.0;
+	}
+	while (Declination >= 360.0) {
+		Declination -= 360.0;
+	}
 
 	// This stores the current position so that it can get reported correctly.
 	_currentPosition = {
@@ -212,14 +234,19 @@ void Dobson::interpolatePosition() {
 		Declination
 	};
 
-	// From here on only debug outputs happen in this method
-	DEBUG_PRINT("Altitude: ");
-	DEBUG_PRINT(degrees(Altitude));
-	DEBUG_PRINT("; Azimuth: ");
-	DEBUG_PRINT(degrees(Azimuth));
 
-	DEBUG_PRINT("; RightAscension: ");
-	DEBUG_PRINT(String(RightAscension, 2));
-	DEBUG_PRINT("; Declination: ");
-	DEBUG_PRINTLN(String(Declination, 2));
+	// From here on only debug outputs happen in this method
+	if (_didMove) {
+		DEBUG_PRINT("; Altitude: ");
+		DEBUG_PRINT(degrees(Altitude));
+		DEBUG_PRINT("; Azimuth: ");
+		DEBUG_PRINT(degrees(Azimuth));
+
+		DEBUG_PRINT("; RightAscension: ");
+		DEBUG_PRINT(RightAscension);
+		DEBUG_PRINT("; Declination: ");
+		DEBUG_PRINTLN(Declination);
+	}
+
+	delay(100);
 }

@@ -15,8 +15,8 @@
 
 
 struct AzAltPosition {
-	long azimuth;
-	long altitude;
+	double azimuth;
+	double altitude;
 };
 
 
