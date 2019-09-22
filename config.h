@@ -153,31 +153,31 @@ static constexpr cstr past_last_slash(cstr str)
 
 // Prints a debug message with time, file name and line number
 #define DEBUG_PRINT_V(x)   \
-		   Serial.print(String(millis() / 1000., 2));\
-		   Serial.print(": ");     \
-		   Serial.print(__FILENAME__);  \
-		   Serial.print(':');        \
-		   Serial.print(__LINE__);    \
-		   Serial.print(' ');          \
+		   Serial.print(String(millis() / 1000., 2)); \
+		   Serial.print(": ");       \
+		   Serial.print(__FILENAME__);\
+		   Serial.print(':');          \
+		   Serial.print(__LINE__);      \
+		   Serial.print(' ');            \
 		   Serial.print(x);
 
 // Prints a debug message line with timestamp, file name and line number
 #define DEBUG_PRINTLN_V(x)   \
-		   Serial.print(String(millis() / 1000., 2));\
-		   Serial.print(": ");     \
-		   Serial.print(__FILENAME__);  \
-		   Serial.print(':');        \
-		   Serial.print(__LINE__);    \
-		   Serial.print(' ');          \
+		   Serial.print(String(millis() / 1000., 2)); \
+		   Serial.print(": ");       \
+		   Serial.print(__FILENAME__);\
+		   Serial.print(':');          \
+		   Serial.print(__LINE__);      \
+		   Serial.print(' ');            \
 		   Serial.println(x);
 
 // Prints a debug message with timestamp, function name, file name and line number
 #define DEBUG_PRINT_VV(x)   \
-		   Serial.print(String(millis() / 1000., 2));\
+		   Serial.print(String(millis() / 1000., 2)); \
 		   Serial.print(": ");     \
 		   Serial.print(__PRETTY_FUNCTION__); \
 		   Serial.print(' ');        \
-		   Serial.print(__FILENAME__);    \
+		   Serial.print(__FILENAME__);\
 		   Serial.print(':');          \
 		   Serial.print(__LINE__);      \
 		   Serial.print(' ');            \
@@ -185,11 +185,11 @@ static constexpr cstr past_last_slash(cstr str)
 
 // Prints a debug message line with timestamp, function name, file name and line number
 #define DEBUG_PRINTLN_VV(x) \
-		   Serial.print(String(millis() / 1000., 2));\
+		   Serial.print(String(millis() / 1000., 2)); \
 		   Serial.print(": ");     \
 		   Serial.print(__PRETTY_FUNCTION__); \
 		   Serial.print(' ');        \
-		   Serial.print(__FILENAME__);    \
+		   Serial.print(__FILENAME__);\
 		   Serial.print(':');          \
 		   Serial.print(__LINE__);      \
 		   Serial.print(' ');            \
