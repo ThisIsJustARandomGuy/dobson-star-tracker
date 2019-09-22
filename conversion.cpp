@@ -17,11 +17,11 @@
 // 
 float ra_h = 16;
 float ra_m = 41.7;
-float ra_deg = (ra_h + ra_m / 60) * 15;
+double ra_deg = (ra_h + ra_m / 60.0) * 15.0;
 
 float dec_d = 36;
 float dec_m = 28;
-float dec_deg = dec_d + dec_m / 60;
+double dec_deg = dec_d + dec_m / 60.0;
 
 boolean isPositiveDeclination = false;
 
@@ -126,37 +126,39 @@ void printHelp() {
 	Serial.println(":GD# Get Declination");
 	Serial.println(":Sr,HH:MM:SS# Set Right Ascension; Example: :Sr,12:34:56#");
 	Serial.println(":Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#");
-	Serial.println(":MS# Start Move");
+	Serial.println(":MS# Start Move; Starts tracking mode if not enabled");
+	Serial.println(":TRK0# Disable tracking");
+	Serial.println(":TRK1# Enable tracking");
 	Serial.print(":DBGM[0-" + String(maxDebugPos - 1) + "]# Move to debug position X");
 	Serial.println(":DBGMIA# Increase Ascension by 1 degree");
 	Serial.println(":DBGMDA# Decrease Ascension by 1 degree");
 	Serial.println(":DBGMID# Increase Declination by 1 degree");
 	Serial.println(":DBGMDD# Decrease Declination by 1 degree");
-	Serial.println(":DBGDM[0-9]# Disable Motors for X seconds");
+	Serial.println(":DBGDM[00-99]# Disable Motors for XX seconds");
 }
 
 
 
 // Reports the current right ascension
 void getRightAscension(Mount& scope) {
-	float pos = scope.getCurrentPosition().rightAscension / 15;
+	const double pos = scope.getCurrentPosition().rightAscension / 15;
 
-	int hrs = static_cast<int>(pos);
-	int mins = static_cast<int>((pos - hrs) * 60);
-	int secs = static_cast<int>((pos - (hrs + mins / 60.)) * 3600);
+	const int hrs = static_cast<int>(pos);
+	const int mins = static_cast<int>((pos - hrs) * 60);
+	const int secs = static_cast<int>((pos - (hrs + mins / 60.)) * 3600);
 
-	sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
+	sprintf(txAR, "%02d:%02d:%02d#", hrs, mins, secs);
 
 	Serial.print(txAR);
 }
 
 // Reports the current declination
 void getDeclination(Mount &scope) {
-	float pos = scope.getCurrentPosition().declination / 360;
+	const double pos = scope.getCurrentPosition().declination;
 
-	int deg = static_cast<int>(pos);
-	int mins = static_cast<int>((pos - deg) * 60);
-	int secs = static_cast<int>((pos - (deg + mins / 60.)) * 3600);
+	const int deg = static_cast<int>(pos);
+	const int mins = static_cast<int>((pos - deg) * 60);
+	const int secs = static_cast<int>((pos - (deg + mins / 60.)) * 3600);
 
 	sprintf(txDEC, "%c%02d%c%02d:%02d#", deg > 0 ? '+' : '-', deg, 223, mins, secs);
 
@@ -184,6 +186,8 @@ bool moveStart(bool homingMode) {
 		isHomed = true;
 		return true;
 	}
+
+	return false;
 }
 
 
@@ -193,16 +197,13 @@ void setRightAscension(Mount &telescope) {
 	Serial.print("1");
 
 	// Parse the coordinates part of the command to integers
-	int hrs = multi_char_to_int(receivedChars[3], receivedChars[4]);
-	int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
-	int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
-
-	// This is what we return to Stellarium when it asks for the current right ascension
-	sprintf(txAR, "%02d:%02d:%02d#", int(hrs), int(mins), int(secs));
-
-	//ra_deg = 360. * (hrs / 24. + mins / (24. * 60.) + secs / (24. * 3600.));
+	const int hrs = multi_char_to_int(receivedChars[3], receivedChars[4]);
+	const int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
+	const int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
+	
 	ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
 
+	// Set the telescope target
 	RaDecPosition scopeTarget = telescope.getTarget();
 	scopeTarget.rightAscension = ra_deg;
 	telescope.setTarget(scopeTarget);
@@ -213,17 +214,18 @@ void setDeclination(Mount &telescope) {
 	// Immediately confirm to Stellarium
 	Serial.print("1");
 
-	int multi = (receivedChars[3] == '+') ? 1 : -1; // TODO bool may be more memory efficient
+	// Whether the coordinates are positive (1) or negative (-1)
+	const int multi = (receivedChars[3] == '+') ? 1 : -1;
 
-	int deg = multi_char_to_int(receivedChars[4], receivedChars[5]);
-	int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
-	int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
+	// Parse the coordinates part of the command to integers
+	const int deg = multi_char_to_int(receivedChars[4], receivedChars[5]);
+	const int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
+	const int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
 
-	sprintf(txDEC, "%c%02d%c%02d:%02d#", receivedChars[3], deg, 223, mins, secs);
-
-	dec_deg = multi * (deg + mins / 60. + secs / 3600.);
+	dec_deg = (secs / 3600.0 + mins / 60.0 + deg) * multi;
 	isPositiveDeclination = multi > 0;
 
+	// Set the telescope target
 	RaDecPosition scopeTarget = telescope.getTarget();
 	scopeTarget.declination = dec_deg;
 	telescope.setTarget(scopeTarget);
@@ -259,7 +261,32 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target Declination (in degrees, minutes and seconds)
 			setDeclination(telescope);
-		} else if (receivedChars[0] == 'D' && receivedChars[1] == 'B'
+		}
+		else if (receivedChars[0] == 'T' && receivedChars[1] == 'R' && receivedChars[2] == 'K') {
+			// Enable / Disable tracking (= home off / on)
+			if (receivedChars[3] == '1') {
+				telescope.setHomed(true);
+				Serial.println("Enabled tracking");
+			}
+			else if (receivedChars[3] == '0') {
+				telescope.setHomed(false);
+				Serial.println("Disabled tracking");
+			}
+		}
+		else if (receivedChars[0] == 'S' && receivedChars[1] == 'T' && receivedChars[2] == 'P') {
+			// Enable / Disable stepper motors
+			if (receivedChars[3] == '1') {
+				digitalWrite(ALT_ENABLE_PIN, LOW);
+				digitalWrite(AZ_ENABLE_PIN, LOW);
+				Serial.println("Enabled stepper motors. Send :STP0# to disable them");
+			}
+			else if (receivedChars[3] == '0') {
+				digitalWrite(ALT_ENABLE_PIN, HIGH);
+				digitalWrite(AZ_ENABLE_PIN, HIGH);
+				Serial.println("Disabled stepper motors. Send :STP1# to re-enable them");
+			}
+		}
+		else if (receivedChars[0] == 'D' && receivedChars[1] == 'B'
 				&& receivedChars[2] == 'G') {
 			// DEBUG messages
 			if (receivedChars[3] == 'M') {
@@ -313,8 +340,9 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 				digitalWrite(ALT_ENABLE_PIN, HIGH);
 				digitalWrite(AZ_ENABLE_PIN, HIGH);
 				Serial.print("Disabling motors for: ");
-				Serial.println((receivedChars[5] - '0') * 1000);
-				delay((receivedChars[5] - '0') * 1000);
+				const int disable_seconds = multi_char_to_int(receivedChars[5], receivedChars[6]);
+				Serial.println(disable_seconds);
+				delay(disable_seconds * 1000);
 				Serial.println("Continuing");
 				digitalWrite(ALT_ENABLE_PIN, LOW);
 				digitalWrite(AZ_ENABLE_PIN, LOW);

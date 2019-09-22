@@ -232,7 +232,7 @@ void loop() {
 		// Start tracking after homing
 		operating_mode = OPMODE_TRACKING;
 
-		//scope.setHomed();
+		scope.setHomed();
 	}
 
 	// Turn the stepper motors on or off, depending on state of STEPPERS_ON_PIN

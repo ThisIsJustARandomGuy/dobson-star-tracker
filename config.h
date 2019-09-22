@@ -38,7 +38,7 @@
  */
 #define BUZZER_PIN         14 // Uncomment if you have a buzzer installed. Default pin for RAMPS 1.4 is Y_MIN
 #define STEPPERS_ON_PIN    3  // Uncomment if you have a stepper switch installed. Default pin for RAMPS 1.4 is  X_MIN. If this pin is HIGH, the steppers are turned on.
-#define HOME_NOW_PIN       3  // Uncomment if you have a homing mode switch installed. Default pin for RAMPS 1.4 is X_MAX. If this pin is HIGH, homing is performed
+//#define HOME_NOW_PIN       3  // Uncomment if you have a homing mode switch installed. Default pin for RAMPS 1.4 is X_MAX. If this pin is HIGH, homing is performed
 #define TARGET_SELECT_PIN  2  // Debug button which cycles through a few different targets
 
 /**
@@ -116,54 +116,100 @@ const short TIME_FACTOR = 1;
 #define STEPPER_INTERRUPT_FREQ 100 // every 0.1ms
 #endif
 
-/*
- * Debug macros. Only change these if you know what you are doing
- */
+
+// ----------------------------------------------------------------------
+// ---------------------------- DEBUG MACROS ----------------------------
+// ---------- Only change these if you know what you are doing ----------
+// ----------------------------------------------------------------------
+
 #if defined DEBUG && defined DEBUG_SERIAL
+
+/* This part uses the code from https://blog.galowicz.de/2016/02/20/short_file_macro/
+ * to set the __FILENAME__ constant which is used in the debug macros.
+ */
+using cstr = const char* const;
+
+static constexpr cstr past_last_slash(cstr str, cstr last_slash)
+{
+	return
+		*str == '\0' ? last_slash :
+		(*str == '/'  || *str == '\\') ? past_last_slash(str + 1, str + 1) :
+		past_last_slash(str + 1, last_slash);
+}
+
+static constexpr cstr past_last_slash(cstr str)
+{
+	return past_last_slash(str, str);
+}
+
+// The filename part of __FILE__ excluding the path
+#define __FILENAME__ ({constexpr cstr sf__ {past_last_slash(__FILE__)}; sf__;})
+
+// Prints a debug message
 #define DEBUG_PRINT(x)    Serial.print(x)
+
+// Prints a debug message line
 #define DEBUG_PRINTLN(x)  Serial.println(x)
+
+// Prints a debug message with time, file name and line number
 #define DEBUG_PRINT_V(x)   \
-		   Serial.print(millis());\
+		   Serial.print(String(millis() / 1000., 2));\
 		   Serial.print(": ");     \
-		   Serial.print(__FILE__);  \
+		   Serial.print(__FILENAME__);  \
 		   Serial.print(':');        \
 		   Serial.print(__LINE__);    \
 		   Serial.print(' ');          \
 		   Serial.print(x);
+
+// Prints a debug message line with timestamp, file name and line number
 #define DEBUG_PRINTLN_V(x)   \
-		   Serial.print(millis());\
+		   Serial.print(String(millis() / 1000., 2));\
 		   Serial.print(": ");     \
-		   Serial.print(__FILE__);  \
+		   Serial.print(__FILENAME__);  \
 		   Serial.print(':');        \
 		   Serial.print(__LINE__);    \
 		   Serial.print(' ');          \
 		   Serial.println(x);
+
+// Prints a debug message with timestamp, function name, file name and line number
 #define DEBUG_PRINT_VV(x)   \
-		   Serial.print(millis());\
+		   Serial.print(String(millis() / 1000., 2));\
 		   Serial.print(": ");     \
 		   Serial.print(__PRETTY_FUNCTION__); \
 		   Serial.print(' ');        \
-		   Serial.print(__FILE__);    \
+		   Serial.print(__FILENAME__);    \
 		   Serial.print(':');          \
 		   Serial.print(__LINE__);      \
 		   Serial.print(' ');            \
 		   Serial.print(x);
+
+// Prints a debug message line with timestamp, function name, file name and line number
 #define DEBUG_PRINTLN_VV(x) \
-		   Serial.print(millis());\
+		   Serial.print(String(millis() / 1000., 2));\
 		   Serial.print(": ");     \
 		   Serial.print(__PRETTY_FUNCTION__); \
 		   Serial.print(' ');        \
-		   Serial.print(__FILE__);    \
+		   Serial.print(__FILENAME__);    \
 		   Serial.print(':');          \
 		   Serial.print(__LINE__);      \
 		   Serial.print(' ');            \
 		   Serial.println(x);
 #else
+// (Disabled) Prints a debug message. Define the DEBUGand DEBUG_SERIAL constants to enable
 #define DEBUG_PRINT(x)
-#define DEBUG_PRINT_V(x)
-#define DEBUG_PRINT_VV(x)
+
+// (Disabled) Prints a debug message line. Define the DEBUGand DEBUG_SERIAL constants to enable
 #define DEBUG_PRINTLN(x)
+
+// (Disabled) Prints a debug message with timestamp, file name and line number. Define the DEBUG and DEBUG_SERIAL constants to enable
+#define DEBUG_PRINT_V(x)
+
+// (Disabled) Prints a debug message line with timestamp, file name and line number. Define the DEBUG and DEBUG_SERIAL constants to enable
 #define DEBUG_PRINTLN_V(x)
+
+// (Disabled) Prints a debug message with timestamp, function name, file name and line number. Define the DEBUG and DEBUG_SERIAL constants to enable
+#define DEBUG_PRINT_VV(x)
+
+// (Disabled) Prints a debug message line with timestamp, function name, file name and line number. Define the DEBUG and DEBUG_SERIAL constants to enable
 #define DEBUG_PRINTLN_VV(x)
 #endif
-

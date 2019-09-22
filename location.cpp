@@ -197,7 +197,7 @@ TelescopePosition& handleGPS(FuGPS &fuGPS) {
 //
 // We can easily calculate the following values, but I'm currently too lazy
 //
-// Index 0 is 2019. Later we need to add 0.5 to this, but we don't so that we can use int here
+// Index 0 is 2019. Later we need to add 0.5 to this. Here we don't so that we can use int here
 const int _days_since_j2k[] = { 6938, 7303, 7669, 8034, 8399, 8764, 9130 };
 
 // Days to the beginning of each month. 0 is January.

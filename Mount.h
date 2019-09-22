@@ -20,8 +20,8 @@ public:
 		_gpsPosition = pos;
 	}
 
-	void setHomed() {
-		_isHomed = true;
+	void setHomed(const bool value = true) {
+		_isHomed = value;
 	}
 
 	void setTarget(RaDecPosition target) {

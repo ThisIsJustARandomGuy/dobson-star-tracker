@@ -13,7 +13,10 @@ This project aims to enable makers to motorize their dobson-style mounted telesc
 
 The printable files (stl and step format) can be found at: https://www.thingiverse.com/thing:3851307
 
+
+
 ## Serial Commands
+
 + :HLP# Print available Commands
 + Commands used by stellarium (you can use them as well)
   + :GR# Get Right Ascension
@@ -22,8 +25,13 @@ The printable files (stl and step format) can be found at: https://www.thingiver
   + :Sd,[+/-]DD:MM:SS# Set Declination (DD is degrees) Example: :Sd,+12:34:56#
   + :MS# Start Move
   + :Q# Quit Move (Not Implemented)
++ Other commands
+  + :TRK0# Disable tracking. This sets the telescopes isHomed member variable to false, so the motors stop moving
+  + :TRK1# Enable tracking. The telescope will track whatever the target is
+  + :STP0# Disable steppers permanently
+  + :STP1# Enable steppers (after they were disabled using the STP0 command)
 + Debug commands
-  + :DBGDM[0-9]# Disable Motors for X seconds
+  + :DBGDM[00-99]# Disable Motors for XX seconds
   + :DBGM[0-9]# Move to debug position X (see conversion.cpp; Later we will have a separate file with a star catalogue)
   + :DBGMIA# Increase Right Ascension by 1 degree
   + :DBGMDA# Decrease Right Ascension by 1 degree
@@ -37,4 +45,4 @@ The Most important TODOs are as follows (in no particular order)
 + Board compatibility: Out-of-the-box support for Arduino Mega and Arduino Due with their respective RAMPS shields (Mostly done, Mega + RAMPS 1.4 and Due + modified RAMPS 1.4 work)
 + Time keeping: Handle big swings which could happen due to GPS issues
 + EEPROM: Store time and location in EEPROM (Mega) or Flash (Due); Provide a simple API for doing so
-+ Motor control: Turn On/Off permanently. Off for X seconds is already implemented as :DBGDM[0-9]#
++ Motor control: Turn On/Off permanently. Off for X seconds is already implemented as :DBGDM[00-99]#

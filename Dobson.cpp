@@ -55,8 +55,8 @@ void Dobson::calculateMotorTargets() {
 	};
 
 	_steppersTarget = {
-		(long)((_targetDegrees.azimuth * AZ_STEPS_PER_REV) / 360.0), // Azimuth
-		(long)((_targetDegrees.altitude * ALT_STEPS_PER_REV) / 360.0) // Altitude
+		((_targetDegrees.azimuth * AZ_STEPS_PER_REV) / 360.0), // Azimuth
+		((_targetDegrees.altitude * ALT_STEPS_PER_REV) / 360.0) // Altitude
 	};
 
 #ifdef DEBUG
@@ -71,6 +71,10 @@ void Dobson::calculateMotorTargets() {
  * The next time the method gets called, _isHomed is true , and the stepper motors are actually moved to their new required position.
  */
 void Dobson::move() {
+	if ((micros() < 5000)) {
+		DEBUG_PRINTLN("Ignore move for first 5 seconds");
+		return;
+	}
 	long micros_after_move = 0;
 	if (!_isHomed) {
 		DEBUG_PRINT("Just homed to ");
@@ -89,7 +93,7 @@ void Dobson::move() {
 		_steppersLastTarget = { _steppersTarget.azimuth, _steppersTarget.altitude };
 
 		// Homing was performed
-		_isHomed = true;
+		//_isHomed = true;
 		// Homing was performed in this iteration. In the next loop iteration this value can be used, but then it gets set to false again
 		_homedLastIteration = true;
 	} else {
