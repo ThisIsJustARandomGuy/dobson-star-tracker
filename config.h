@@ -55,6 +55,12 @@
 // Uncomment the following line to enable sending debug statements via the serial port
 #define DEBUG_SERIAL
 
+// Uncomment to enable debug statements regarding stepper movement
+//#define DEBUG_SERIAL_STEPPER_MOVEMENT
+
+// Uncomment to enable debug statements regarding position calculations
+#define DEBUG_SERIAL_POSITION_CALC
+
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS
 
@@ -64,23 +70,6 @@
 //#define DEBUG_DISABLE_ALL_STEPPERS     // Uncomment this to disable ALL stepper drivers
 //#define DEBUG_DISABLE_AZIMUTH_STEPPER  // Uncomment this to disable only the azimuth stepper motor
 //#define DEBUG_DISABLE_ALTITUDE_STEPPER // Uncomment this to disable only the altitude stepper
-
-// Please only modify this if you know what you are doing
-#if !defined DEBUG || !(defined DEBUG_DISABLE_ALL_STEPPERS || defined DEBUG_DISABLE_AZIMUTH_STEPPER)
-#define AZ_ENABLE
-#endif
-
-#if !defined DEBUG || !(defined DEBUG_DISABLE_ALL_STEPPERS || defined DEBUG_DISABLE_ALTITUDE_STEPPER)
-#define ALT_ENABLE
-#endif
-// Continue modifying
-
-// Time multiplication factor. 1 means real-time. 2 means time passes twice as fast
-// Do NOT set to something ridiculously high if your motors are connected or rapid unplanned disassembly of setup may occur
-// DO use this to test your setup, but start with sensible values like 1
-// Negative values can be used to reverse the passing of time. Caution: This does _not_ rewind actual time. We're actively working on that feature (PR #1)
-// TODO Currently this doesn't work due to the use of the Time.h library.
-const short TIME_FACTOR = 1;
 
 /**
  * ----------------
@@ -212,4 +201,14 @@ static constexpr cstr past_last_slash(cstr str)
 
 // (Disabled) Prints a debug message line with timestamp, function name, file name and line number. Define the DEBUG and DEBUG_SERIAL constants to enable
 #define DEBUG_PRINTLN_VV(x)
+#endif
+
+
+// These define whether the stepper drivers are enabled at all. Please do not modify
+#if !defined DEBUG || !(defined DEBUG_DISABLE_ALL_STEPPERS || defined DEBUG_DISABLE_AZIMUTH_STEPPER)
+#define AZ_ENABLE
+#endif
+
+#if !defined DEBUG || !(defined DEBUG_DISABLE_ALL_STEPPERS || defined DEBUG_DISABLE_ALTITUDE_STEPPER)
+#define ALT_ENABLE
 #endif

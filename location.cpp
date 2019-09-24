@@ -28,30 +28,21 @@ const unsigned int eeprom_seconds = eeprom_minutes + sizeof(int);
  */
 void loadFromEEPROM() {
 	float altitude, latitude, longitude;
-	int hours, minutes, seconds;
 
 
 #ifdef BOARD_ARDUINO_MEGA
 	EEPROM.get(eeprom_alt, altitude);
 	EEPROM.get(eeprom_lat, latitude);
 	EEPROM.get(eeprom_lng, longitude);
-	EEPROM.get(eeprom_hours, hours);
-	EEPROM.get(eeprom_minutes, minutes);
-	EEPROM.get(eeprom_seconds, seconds);
 #else
 	altitude = 0;
 	latitude = 0;
 	longitude = 0;
-	hours = 0;
-	seconds = 0;
 #endif
 
 	gpsPosition.altitude = altitude;
 	gpsPosition.latitude = latitude;
 	gpsPosition.longitude = longitude;
-	//gpsPosition.hours = hours;
-	//gpsPosition.minutes = minutes;
-	//gpsPosition.seconds = seconds;
 }
 
 /**

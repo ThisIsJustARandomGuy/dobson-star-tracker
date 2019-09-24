@@ -22,9 +22,7 @@ Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGP
 
 // Calculate new motor targets. This does not yet execute the move
 void Dobson::calculateMotorTargets() {
-	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since execution started
-
-	// Get the local sidereal time and store it in a private value (it gets referenced by the interpolatePosition method)
+	// Get the local sidereal time and store it in a private value (it gets referenced by the azAltToRaDec method)
 	_currentLocalSiderealTime = get_local_sidereal_time(_gpsPosition.longitude);
 	
 	// The hour angle is the difference between the local sidereal timeand the right ascension in degrees of the target object.
@@ -55,8 +53,8 @@ void Dobson::calculateMotorTargets() {
 	};
 
 	_steppersTarget = {
-		((_targetDegrees.azimuth * AZ_STEPS_PER_REV) / 360.0), // Azimuth
-		((_targetDegrees.altitude * ALT_STEPS_PER_REV) / 360.0) // Altitude
+		(_targetDegrees.azimuth / 360.0) * (double)AZ_STEPS_PER_REV,  // Azimuth
+		(_targetDegrees.altitude / 360.0) * (double)ALT_STEPS_PER_REV // Altitude
 	};
 
 #ifdef DEBUG
@@ -75,41 +73,66 @@ void Dobson::move() {
 		DEBUG_PRINTLN("Ignore move for first 5 seconds");
 		return;
 	}
-	long micros_after_move = 0;
-	if (!_isHomed) {
-		DEBUG_PRINT("Just homed to ");
-		DEBUG_PRINT(_steppersTarget.azimuth);
-		DEBUG_PRINT(" / ");
-		DEBUG_PRINTLN(_steppersTarget.altitude);
 
+	double currentAzimuthDeg = (_azimuthStepper.currentPosition() / (double)AZ_STEPS_PER_REV) * 360.0;
+	double currentAltitudeDeg = (_altitudeStepper.currentPosition() / (double)ALT_STEPS_PER_REV) * 360.0;
+	
+	// Caclulate and store the current position
+	_currentPosition = azAltToRaDec({
+		currentAzimuthDeg,
+		currentAltitudeDeg
+	});
+
+
+	if (_ignoreMoves || !_isHomed) {
 		// If not homed, or if homing was performed in this loop iteration just
 		// set the current stepper position to the current target position without moving them
 		_azimuthStepper.setCurrentPosition(_steppersTarget.azimuth);
 		_altitudeStepper.setCurrentPosition(_steppersTarget.altitude);
 
-		// Store where the motors were homed, in case we need to move back to the original position.
+		// Store where the motors targeted before this operation, in case we need to move back to the original position.
 		_steppersHomed = { _steppersTarget.azimuth, _steppersTarget.altitude };
 		// Store the last target for later comparisons.
 		_steppersLastTarget = { _steppersTarget.azimuth, _steppersTarget.altitude };
 
-		// Homing was performed
-		//_isHomed = true;
 		// Homing was performed in this iteration. In the next loop iteration this value can be used, but then it gets set to false again
-		_homedLastIteration = true;
+		_ignoredMoveLastIteration = true;
+
+		DEBUG_PRINT("Stepper pos to Az / Alt ");
+		DEBUG_PRINT(_steppersTarget.azimuth);
+		DEBUG_PRINT(" / ");
+		DEBUG_PRINTLN(_steppersTarget.altitude);
 	} else {
-		_homedLastIteration = false;
+		_ignoredMoveLastIteration = false;
 		// Move the steppers to their target positions
 		_azimuthStepper.moveTo(_steppersTarget.azimuth);
 		_altitudeStepper.moveTo(_steppersTarget.altitude);
+	}
 
-		// Caclulate the new RA/DEC position
-		interpolatePosition();
+	// These store the difference between the last motor target and the current one and only serve debug purposes for now
+	long diffAz = 0;
+	long diffAlt = 0;
 
-		// This if statement is wholly for debug debug reasons. There is more code at the end of the method
-		if (abs(_steppersLastTarget.azimuth - _steppersTarget.azimuth) > 0.0
-			|| abs(_steppersLastTarget.altitude - _steppersTarget.altitude) > 0.0) {
-			micros_after_move = micros();
+	// If a move was performed, store the last target value and set _didMove to true to indicate that a move took place this loop iteration
+	if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0.0
+			|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0.0) {
+		// A move was performed
+		_didMove = true;
 
+		// Difference between the last target and the current one
+		diffAz = _steppersLastTarget.azimuth - _steppersTarget.azimuth;
+		diffAlt = _steppersLastTarget.altitude - _steppersLastTarget.altitude;
+
+		// Store the last target
+		_steppersLastTarget.azimuth = _steppersTarget.azimuth;
+		_steppersLastTarget.altitude = _steppersTarget.altitude;
+	} else {
+		// No move was performed
+		_didMove = false;
+	}
+
+	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT
+		if (_didMove) {
 			DEBUG_PRINT_V(
 				_gps.hasFix() ?
 				"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
@@ -138,39 +161,27 @@ void Dobson::move() {
 			DEBUG_PRINT("/dec ");
 			DEBUG_PRINT(_steppersTarget.altitude);
 			DEBUG_PRINT(" diff ");
-			DEBUG_PRINT(_steppersTarget.azimuth - _steppersLastTarget.azimuth);
+			DEBUG_PRINT(diffAz);
 			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(_steppersTarget.altitude - _steppersLastTarget.altitude);
+			DEBUG_PRINT(diffAlt);
 			DEBUG_PRINT("°; Reported: az");
 			DEBUG_PRINT(_azimuthStepper.currentPosition());
 			DEBUG_PRINT("/dec ");
 			DEBUG_PRINT(_altitudeStepper.currentPosition());
-		} // End of debug if statement
-	}
-
-	// If a move was performed, store the last target value and set _didMove to true to indicate that a move took place this loop iteration
-	if (abs(_steppersLastTarget.azimuth - _steppersTarget.azimuth) > 0.0
-			|| abs(_steppersLastTarget.altitude - _steppersTarget.altitude) > 0.0) {
-		_steppersLastTarget.azimuth = _steppersTarget.azimuth;
-		_steppersLastTarget.altitude = _steppersTarget.altitude;
-		_didMove = true;
-	} else {
-		_didMove = false;
-	}
+		}
+	#endif
 }
 
 
 /*
- * This method calculates the current position in RA/DEC, based on the position of the stepper motors.
+ * This method calculates the position in RA/DEC, based on the position given in the parameter "position"
  * // TODO Document this a bit better
  */
-void Dobson::interpolatePosition() {
-	long passed_seconds = (millis() * TIME_FACTOR) / 1000; // Seconds that have passed since execution started
-
+RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 	// Calculate Altitude in Degrees
-	const double altsteps = ALT_STEPS_PER_REV;
-	double Altitude = (_altitudeStepper.currentPosition() / ((double)ALT_STEPS_PER_REV)) * 360.00;
+	double Altitude = position.altitude;
 
+	// Ensure that Altitude is between 0 and 360
 	while (Altitude < 0.0) {
 		Altitude += 360.;
 	}
@@ -179,9 +190,9 @@ void Dobson::interpolatePosition() {
 	}
 
 	// Azimuth in Degrees
-	double Azimuth = (_azimuthStepper.currentPosition() / ((double)AZ_STEPS_PER_REV)) * 360.00;
+	double Azimuth = position.azimuth;
 
-	// Ensure that it is between 0 and 360
+	// Ensure that Azimuth is between 0 and 360
 	while (Azimuth < 0.0) {
 		Azimuth += 360.0;
 	}
@@ -233,24 +244,26 @@ void Dobson::interpolatePosition() {
 	}
 
 	// This stores the current position so that it can get reported correctly.
-	_currentPosition = {
+	RaDecPosition result = {
 		RightAscension,
 		Declination
 	};
 
 
 	// From here on only debug outputs happen in this method
-	if (_didMove) {
-		DEBUG_PRINT("; Altitude: ");
-		DEBUG_PRINT(degrees(Altitude));
-		DEBUG_PRINT("; Azimuth: ");
-		DEBUG_PRINT(degrees(Azimuth));
+	#ifdef DEBUG_SERIAL_POSITION_CALC
+		if (_didMove) {
+			DEBUG_PRINT("Altitude: ");
+			DEBUG_PRINT(_altitudeStepper.currentPosition());
+			DEBUG_PRINT("; Azimuth: ");
+			DEBUG_PRINT(_azimuthStepper.currentPosition());
 
-		DEBUG_PRINT("; RightAscension: ");
-		DEBUG_PRINT(RightAscension);
-		DEBUG_PRINT("; Declination: ");
-		DEBUG_PRINTLN(Declination);
-	}
+			DEBUG_PRINT("; RightAscension: ");
+			DEBUG_PRINT(RightAscension);
+			DEBUG_PRINT("; Declination: ");
+			DEBUG_PRINTLN(Declination);
+		}
+	#endif
 
-	delay(100);
+	return result;
 }

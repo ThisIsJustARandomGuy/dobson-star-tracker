@@ -194,7 +194,7 @@ void setup() {
 	operating_mode = OPMODE_HOMING;
 	// tone(BUZZER_PIN, 2000, 500);
 
-	scope.setTarget( { 16.7, 36.5 });
+	scope.setTarget( { 250.43, 36.47 });
 }
 
 
@@ -243,8 +243,10 @@ void loop() {
 	if (loopIteration >= 10000 || loopIteration == 0) {
 		loopIteration = 0;
 
-		// Start timing the calculation
-		long micros_start = micros();
+		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT)
+			// Start timing the calculation
+			long micros_start = micros();
+		#endif
 
 		// This function converts the coordinates
 		scope.calculateMotorTargets();
@@ -252,17 +254,17 @@ void loop() {
 		// This actually makes the motors move to their desired target positions
 		scope.move();
 
-		#ifdef DEBUG
-		// Debug: If a move took place, output how long it took from beginning to end of the calculation
-		if (scope._didMove) {
-			long calc_time = scope._lastCalcMicros - micros_start;
-			long dbg_time = micros() - scope._lastCalcMicros;
-			DEBUG_PRINT("; Calc: ");
-			DEBUG_PRINT(calc_time / 1000.);
-			DEBUG_PRINT("ms; DbgComms: ");
-			DEBUG_PRINT(dbg_time / 1000.);
-			DEBUG_PRINTLN("ms");
-		}
+		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT)
+			// Debug: If a move took place, output how long it took from beginning to end of the calculation
+			if (scope._didMove) {
+				long calc_time = scope._lastCalcMicros - micros_start;
+				long dbg_time = micros() - scope._lastCalcMicros;
+				DEBUG_PRINT("; Calc: ");
+				DEBUG_PRINT(calc_time / 1000.);
+				DEBUG_PRINT("ms; DbgComms: ");
+				DEBUG_PRINT(dbg_time / 1000.);
+				DEBUG_PRINTLN("ms");
+			}
 		#endif
 	}
 

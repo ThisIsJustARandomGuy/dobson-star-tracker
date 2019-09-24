@@ -24,7 +24,18 @@ public:
 		_isHomed = value;
 	}
 
+	bool isHomed() {
+		return _isHomed;
+	}
+
+	void ignoreUpdates(const bool value = true) {
+		_ignoreMoves = value;
+	}
+
 	void setTarget(RaDecPosition target) {
+		Serial.println("Target set");
+		Serial.println(target.rightAscension);
+		Serial.println(target.declination);
 		_lastTarget = _target;
 		_target = target;
 	}
@@ -40,8 +51,9 @@ public:
 protected:
 	TelescopePosition _gpsPosition;
 
-	bool _homedLastIteration = false;
+	bool _ignoredMoveLastIteration = false;
 	bool _isHomed = false;
+	bool _ignoreMoves = false;
 
 	RaDecPosition _target;
 

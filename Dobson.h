@@ -25,17 +25,17 @@ public:
 	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps);
 
 	// Calculates the next targets for the steppers, based on the GPS position, current time and target
-	// It also calls the interpolatePosition() method
+	// This does not yet update the stepper motor targets, but stores them in the protected member variable _steppersTarget
+	// It also calls the azAltToRaDec() method with the current stepper position and stores the result
 	void calculateMotorTargets();
 	
 	// Calculates the current position in Ra/Dec, which is reported back to Stellarium or other connected tools
-	// This does not yet update the stepper motor targets, but stores them in the protected member variable _steppersTarget
-	void interpolatePosition();
+	RaDecPosition azAltToRaDec(AzAltPosition position);
 
 	// Sets the actual motor targets, based on the contents of _steppersTarget
 	void move();
 
-	// How long calculateMotorTargets took to execute (including interpolatePosition())
+	// How long calculateMotorTargets took to execute (including azAltToRaDec())
 	long _lastCalcMicros = 0;
 
 	// It is set to true at the end of the move() method, if at least one stepper target was changed
@@ -52,7 +52,7 @@ protected:
 	// Reference to the GPS module
 	FuGPS &_gps;
 
-	// This is written to (and used) by calculateMotorTargets() and just used by interpolatePosition()
+	// This is written to (and used) by calculateMotorTargets() and just used by azAltToRaDec()
 	double _currentLocalSiderealTime;
 	
 	// Target position in degrees

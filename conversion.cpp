@@ -15,12 +15,12 @@
 
 // These are the coordinates that the telescope initially thinks it's pointed at.
 // 
-float ra_h = 16;
-float ra_m = 41.7;
+const double ra_h = 16.0;
+const double ra_m = 41.7;
 double ra_deg = (ra_h + ra_m / 60.0) * 15.0;
 
-float dec_d = 36;
-float dec_m = 28;
+const double dec_d = 36.0;
+const double dec_m = 28.0;
 double dec_deg = dec_d + dec_m / 60.0;
 
 boolean isPositiveDeclination = false;
@@ -39,6 +39,35 @@ static byte ndx = 0; // Number of command character received
 const char startMarker = ':'; // Commands begin with this character
 const char endMarker = '#'; // Commands end with this character
 
+// These are the positions that can be cycled through with the position switch
+const double debugPositions[][2] = {
+	{ ra_deg, dec_deg},
+	{ 279.2354166, 38.78555556 }, // Vega
+	{ 213.9083333 , 19.17038889 },    // Arktur
+	{ 37.9624166 , 89.2642777 },    // Polaris
+	{ 15.7, 36.5 },
+	{ 14.7, 36.5 },
+	{ 17.7, 36.5 },
+	{ 18.7, 36.5 },
+	{ 19.7, 36.5 },
+	{ 17.7, 38.5 },
+	{ 17.7, 39.5 }
+};
+
+const char* positionNames[] = {
+	"Start",
+	"Polaris",
+	"Vega",
+	"Arktur",
+	"Pos 4",
+	"Pos 5",
+	"Pos 6",
+	"Pos 7",
+	"Pos 8",
+	"Pos 9"
+};
+
+const int maxDebugPos = sizeof(debugPositions) / (sizeof(debugPositions[0]));
 
 void initCommunication() {
 	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m), int(0));
@@ -97,21 +126,6 @@ void receiveCommandChar() {
 #define SERIAL_CMD_SET_DECLINATION     5
 
 
-// These are the positions that can be cycled through with the position switch
-float debugPositions[][2] = {
-	{ ra_deg, dec_deg},
-	{ 37.96241667 , 89.26427778 },    // Polaris
-	{ 279.23541666666, 38.78555556 }, // Vega
-	{ 213.9083333 , 19.17038889 },    // Arktur
-	{ 15.7, 36.5 },
-	{ 14.7, 36.5 },
-	{ 17.7, 36.5 },
-	{ 18.7, 36.5 },
-	{ 19.7, 36.5 },
-	{ 17.7, 38.5 },
-	{ 17.7, 39.5 }
-};
-const int maxDebugPos = sizeof(debugPositions) / (sizeof(debugPositions[0]));
 
 
 /**
@@ -201,7 +215,11 @@ void setRightAscension(Mount &telescope) {
 	const int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
 	const int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
 	
+	Serial.println();
+	Serial.println("Changing RA");
+	Serial.println(ra_deg);
 	ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
+	Serial.println(ra_deg);
 
 	// Set the telescope target
 	RaDecPosition scopeTarget = telescope.getTarget();
@@ -222,7 +240,11 @@ void setDeclination(Mount &telescope) {
 	const int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
 	const int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
 
+	Serial.println();
+	Serial.println("Changing DEC");
+	Serial.println(dec_deg);
 	dec_deg = (secs / 3600.0 + mins / 60.0 + deg) * multi;
+	Serial.println(dec_deg);
 	isPositiveDeclination = multi > 0;
 
 	// Set the telescope target
@@ -252,14 +274,22 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 			// MS: Move Start
 			// The function returning true means that isHomed was set to true.
 			if (moveStart(homingMode)) {
+				// Ignores the next movement update and treats it as a home command instead
+				telescope.ignoreUpdates();
+
 				newData = false;
 				return true;
 			}
+			else {
+				telescope.ignoreUpdates(false);
+			}
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'r') {
 			// Set Right Ascension (in hours, minutes and seconds)
+			telescope.ignoreUpdates();
 			setRightAscension(telescope);
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target Declination (in degrees, minutes and seconds)
+			telescope.ignoreUpdates();
 			setDeclination(telescope);
 		}
 		else if (receivedChars[0] == 'T' && receivedChars[1] == 'R' && receivedChars[2] == 'K') {
@@ -320,15 +350,18 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 					if (targetIndex > maxDebugPos) {
 						Serial.println("Invalid index");
 					} else {
+						Serial.println("");
+						Serial.print("Targeting ");
+						Serial.println(positionNames[targetIndex]);
 						Serial.println("Moving from ALT / DEC");
 						Serial.println(ra_deg);
 						Serial.println(dec_deg);
 						Serial.println("Moving to ALT / DEC");
-						Serial.println(debugPositions[targetIndex][0] * 15);
+						Serial.println(debugPositions[targetIndex][0]);
 						Serial.println(debugPositions[targetIndex][1]);
-						ra_deg = debugPositions[targetIndex][0] * 15;
+						ra_deg = debugPositions[targetIndex][0];
 						dec_deg = debugPositions[targetIndex][1];
-						RaDecPosition newPos = { debugPositions[targetIndex][0] * 15, debugPositions[targetIndex][1] };
+						RaDecPosition newPos = { debugPositions[targetIndex][0], debugPositions[targetIndex][1] };
 						telescope.setTarget(newPos);
 					}
 				}
@@ -390,9 +423,9 @@ bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
 			Serial.println("Switching target to " + String((lastDebugIndex + 1)));
 			dbgBtnPressed = true;
 			lastDebugIndex = (lastDebugIndex + 1) % 10;
-			ra_deg = debugPositions[lastDebugIndex][0] * 15;
+			ra_deg = debugPositions[lastDebugIndex][0];
 			dec_deg = debugPositions[lastDebugIndex][1];
-			RaDecPosition newPos = { debugPositions[lastDebugIndex][0] * 15, debugPositions[lastDebugIndex][1] };
+			RaDecPosition newPos = { debugPositions[lastDebugIndex][0], debugPositions[lastDebugIndex][1] };
 			telescope.setTarget(newPos);
 
 			// Confirmation buzz
