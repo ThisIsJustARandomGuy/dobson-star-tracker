@@ -226,7 +226,7 @@ RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 	// The resulting Right Ascension is LST - HA
 	double RightAscension = _currentLocalSiderealTime - HourAngle;
 
-	// We can also convert Declination to degrees, since it's not needed in calculations anymore
+	// Convert Declination to degrees, since it's not needed in radians anymore
 	Declination = degrees(Declination);
 
 	// Ensure that RightAscension and Declination are between 0 and 360
@@ -243,13 +243,6 @@ RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 		Declination -= 360.0;
 	}
 
-	// This stores the current position so that it can get reported correctly.
-	RaDecPosition result = {
-		RightAscension,
-		Declination
-	};
-
-
 	// From here on only debug outputs happen in this method
 	#ifdef DEBUG_SERIAL_POSITION_CALC
 		if (_didMove) {
@@ -265,5 +258,8 @@ RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 		}
 	#endif
 
-	return result;
+	return {
+		RightAscension,
+		Declination
+	};
 }
