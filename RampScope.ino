@@ -70,7 +70,7 @@ void setupSteppers() {
 			.start(STEPPER_INTERRUPT_FREQ);
 	#endif
 
-	DEBUG_PRINT("Steppers enabled:  ")
+		DEBUG_PRINT("Steppers enabled:  ");
 	#ifdef AZ_ENABLE
 		DEBUG_PRINT("Az=ON");
 	#else
@@ -239,7 +239,7 @@ void loop() {
 		// This actually makes the motors move to their desired target positions
 		scope.move();
 
-		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT)
+		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT) && defined(DEBUG_SERIAL_TIMING)
 			// Debug: If a move took place, output how long it took from beginning to end of the calculation
 			if (scope._didMove) {
 				long calc_time = scope._lastCalcMicros - micros_start;

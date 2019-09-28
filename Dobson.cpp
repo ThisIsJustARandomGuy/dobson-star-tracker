@@ -50,8 +50,11 @@ void Dobson::calculateMotorTargets() {
 	_currentLocalSiderealTime = get_local_sidereal_time(_gpsPosition.longitude);
 	
 	// The hour angle is the difference between the local sidereal timeand the right ascension in degrees of the target object.
-	// This immediately calculates this cosine, because that's all we need later on.
-	const double CosHourAngle = cos(radians(get_hour_angle(_currentLocalSiderealTime, _target.rightAscension)));
+	double HourAngle = get_hour_angle(_currentLocalSiderealTime, _target.rightAscension);
+	clamp360(HourAngle);
+
+	// This calculates this cosine of the HourAngle
+	const double CosHourAngle = cos(radians(HourAngle));
 
 	// Target declination in radians
 	const double RadTargetDeclination = radians(_target.declination);
@@ -102,8 +105,10 @@ void Dobson::move() {
 		return;
 	}
 
-	double currentAzimuthDeg = (_azimuthStepper.currentPosition() / (double)AZ_STEPS_PER_REV) * 360.0;
-	double currentAltitudeDeg = (_altitudeStepper.currentPosition() / (double)ALT_STEPS_PER_REV) * 360.0;
+	//double currentAzimuthDeg = (_azimuthStepper.currentPosition() / (double)AZ_STEPS_PER_REV) * 360.0;
+	//double currentAltitudeDeg = (_altitudeStepper.currentPosition() / (double)ALT_STEPS_PER_REV) * 360.0;
+	double currentAzimuthDeg = (_steppersTarget.azimuth / (double)AZ_STEPS_PER_REV) * 360.0;
+	double currentAltitudeDeg = (_steppersTarget.azimuth / (double)ALT_STEPS_PER_REV) * 360.0;
 	
 	// Caclulate and store the current position
 	_currentPosition = azAltToRaDec({
@@ -201,6 +206,7 @@ void Dobson::move() {
 		}
 	#elif defined DEBUG_SERIAL_STEPPER_MOVEMENT
 		if (_didMove) {
+			DEBUG_PRINTLN();
 			DEBUG_PRINT("Desired:    ");
 
 			DEBUG_PRINT("Az/Alt ");
@@ -215,7 +221,14 @@ void Dobson::move() {
 			DEBUG_PRINT(_target.declination);
 			DEBUG_PRINT("°");
 
-			DEBUG_PRINT("   Steps Az/Alt ");
+			DEBUG_PRINT("   HourAngle ");
+			#ifdef DEBUG_SERIAL_TIMING
+				DEBUG_PRINT(get_hour_angle(_currentLocalSiderealTime, _target.rightAscension));
+			#else
+				DEBUG_PRINTLN(get_hour_angle(_currentLocalSiderealTime, _target.rightAscension));
+			#endif
+
+			/*DEBUG_PRINT("   Steps Az/Alt ");
 			DEBUG_PRINT(_steppersTarget.azimuth);
 			DEBUG_PRINT(" / ");
 			DEBUG_PRINT(_steppersTarget.altitude);
@@ -223,7 +236,7 @@ void Dobson::move() {
 			DEBUG_PRINT("   Diff Az/Alt ");
 			DEBUG_PRINT(diffAz);
 			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(diffAlt);
+			DEBUG_PRINT(diffAlt);*/
 		}
 	#endif
 }
@@ -231,7 +244,7 @@ void Dobson::move() {
 
 /*
  * This method calculates the position in RA/DEC, based on the position given in the parameter "position"
- * // TODO Document this a bit better
+ * The values in the "position" parameter are expected to be in degrees
  */
 RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 	// Azimuth and Altitude in Degrees
@@ -262,11 +275,19 @@ RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 
 	// Declination is kept in radians for now, but will be converted to degrees a few lines below
 	double Declination = (asin(SinAltitude * SinGpsLatitude + cos(Altitude) * CosGpsLatitude * cos(Azimuth)));
+	
 	// Hour angle in degrees
 	double HourAngle = degrees(asin(((0.0-sin(Azimuth)) * cos(Altitude)) / cos(Declination)));
+	clamp360(HourAngle);
 
 	// The resulting Right Ascension is LST - HA (but LST + HA works???)
-	double RightAscension = _currentLocalSiderealTime + HourAngle;
+	double RightAscension;
+	if (HourAngle < 0.0) {
+		RightAscension = _currentLocalSiderealTime - HourAngle;
+	}
+	else {
+		RightAscension = _currentLocalSiderealTime + HourAngle;
+	}
 
 	// Convert Declination to degrees, since it's not needed in radians anymore
 	Declination = degrees(Declination);
@@ -290,7 +311,10 @@ RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 			DEBUG_PRINT(RightAscension);
 			DEBUG_PRINT("° / ");
 			DEBUG_PRINT(Declination);
-			DEBUG_PRINTLN("°");
+			DEBUG_PRINT("°");
+
+			DEBUG_PRINT("   HourAngle ");
+			DEBUG_PRINTLN(HourAngle);
 		}
 	#endif
 

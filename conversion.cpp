@@ -39,6 +39,7 @@ static byte ndx = 0; // Number of command character received
 const char startMarker = ':'; // Commands begin with this character
 const char endMarker = '#'; // Commands end with this character
 
+
 // These are the positions that can be cycled through with the position switch
 const double debugPositions[][2] = {
 	{ ra_deg, dec_deg},
@@ -69,6 +70,23 @@ const char* positionNames[] = {
 
 const int maxDebugPos = sizeof(debugPositions) / (sizeof(debugPositions[0]));
 
+
+// If there is a target select button we need some variables
+#ifdef TARGET_SELECT_PIN
+	// Whether the target select button is pressed (true) or released (false)
+bool targetSelectButtonPressed = false;
+
+// The currently selected target position from the debugPositions array
+// If the value is -1 it either means that no target is selected
+// or that the target was selected differently (e.g. via :Sr...# and :Sd...# commands)
+int selectedDebugTargetIndex = -1;
+
+// This value tracks the last time the the target was changed.
+// It is needed because we want to ignore repeated button presses
+unsigned long timeOfLastTargetChange = 0;
+#endif
+
+// This gets called by the Arduino setup() function and initializes various required variables
 void initCommunication() {
 	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m), int(0));
 	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223, int(dec_m), int(0));
@@ -180,10 +198,9 @@ void getDeclination(Mount &scope) {
 }
 
 // Quit the current move
-// TODO Implement this
-// Motor Position to RaDec conversion is required for this to work and not lose the reported position
-void moveQuit() {
-
+void moveQuit(Mount& scope) {
+	// This sets the target to the position the telescope is actually pointing at, thus stopping any currently running moves
+	scope.setTarget(scope.getCurrentPosition());
 }
 
 // Start the requested move
@@ -225,6 +242,11 @@ void setRightAscension(Mount &telescope) {
 	RaDecPosition scopeTarget = telescope.getTarget();
 	scopeTarget.rightAscension = ra_deg;
 	telescope.setTarget(scopeTarget);
+	
+	// If there is a target select pin we need to reset the selected position to "none"
+	#ifdef TARGET_SELECT_PIN
+		selectedDebugTargetIndex = -1;
+	#endif
 }
 
 // Set target Declination (in +/- degrees, minutes and seconds)
@@ -251,6 +273,11 @@ void setDeclination(Mount &telescope) {
 	RaDecPosition scopeTarget = telescope.getTarget();
 	scopeTarget.declination = dec_deg;
 	telescope.setTarget(scopeTarget);
+	
+	// If there is a target select pin we need to reset the selected position to "none"
+	#ifdef TARGET_SELECT_PIN
+		selectedDebugTargetIndex = -1;
+	#endif
 }
 
 
@@ -269,7 +296,7 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 			getDeclination(telescope);
 		} else if (receivedChars[0] == 'Q') {
 			// Quit the current move
-			moveQuit();
+			moveQuit(telescope);
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// MS: Move Start
 			// The function returning true means that isHomed was set to true.
@@ -366,6 +393,11 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 						dec_deg = debugPositions[targetIndex][1];
 						RaDecPosition newPos = { debugPositions[targetIndex][0], debugPositions[targetIndex][1] };
 						telescope.setTarget(newPos);
+
+						// If there is a target select button we need to store the selected position in 
+						#ifdef TARGET_SELECT_PIN
+							selectedDebugTargetIndex = targetIndex;
+						#endif
 					}
 				}
 			} else if (receivedChars[3] == 'H') {
@@ -411,13 +443,6 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 	}
 	return false;
 }
-
-#ifdef TARGET_SELECT_PIN
-	// If there is a target select button we need some variables
-	int selectedDebugTargetIndex = -1;
-	unsigned long timeOfLastTargetChange = 0;
-	bool targetSelectButtonPressed = false;
-#endif
 
 bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
 	// Receives the next command character, if available
