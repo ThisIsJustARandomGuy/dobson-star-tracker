@@ -23,36 +23,6 @@ FuGPS gps(Serial1); // GPS module
 
 Dobson scope(azimuth, altitude, gps);
 
-// OPMODE_INITIALIZING
-// This is only on when initializing critical hardware such as the stepper drivers.
-// When this mode is active, you can not rely on any value reported by the telescope (stepper pos, GPS pos, desired pos etc.)
-//
-// Motors are on: YES
-// Tracking active: NO
-// Desired/Reported stepper position updates: YES
-#define OPMODE_INITIALIZING 0 // Motors off; Tracking NOT active; Desired/Reported stepper position NOT ACCURATE
-
-// OPMODE_HOMING
-// While this mode is on, the telescope stands still and assumes that it is correctly pointing at the desired position.
-// Once a target gets selected the telescope assumes that this is where it's pointed at and starts tracking it
-//
-// Motors are on: YES
-// Tracking active: NO
-// Desired/Reported stepper position updates: YES
-#define OPMODE_HOMING 1
-
-// OPMODE_TRACKING
-// While this mode is on, the telescope tracks the desired position
-//
-// Motors are on: YES
-// Tracking active: YES
-// Desired/Reported stepper position updates: YES
-#define OPMODE_TRACKING 2
-
-// Start with OPMODE_INITIALIZING
-byte operating_mode = OPMODE_INITIALIZING;
-
-
 // Stores whether stepper drivers are enabled
 bool motorsEnabled = false;
 
@@ -118,11 +88,11 @@ void setupSteppers() {
 /*
  * This function turns stepper motor drivers on, if these conditions are met:
  * STEPPERS_ON_PIN reads HIGH
- * operating mode is not OPMODE_INITIALIZING
+ * operating mode is not Mode::INITIALIZING
  * TODO Maybe the conditions need to change (esp. the opmode one)
  */
 void setSteppersOnOffState() {
-	const bool isInitialized = operating_mode != OPMODE_INITIALIZING;
+	const bool isInitialized = scope.getMode() != Mode::INITIALIZING;
 
 	#ifdef STEPPERS_ON_PIN
 		// If the STEPPERS_ON switch is installed, check its state
@@ -161,7 +131,7 @@ void setSteppersOnOffState() {
  * Stepper motors
  * Buzzer
  * Various buttons
- * Set an initial target for the telescope
+ * Call the telescope.initialize() method which sets an initial target and the scope operating mode
  */
 void setup() {
 	#ifdef BOARD_ARDUINO_MEGA
@@ -197,11 +167,7 @@ void setup() {
 	// Input mode for the select pin is INPUT with PULLUP enabled, so that we can use a longer cable
 	pinMode(TARGET_SELECT_PIN, INPUT_PULLUP);
 
-	// Set the telescope to homing mode (see README for what it does)
-	operating_mode = OPMODE_HOMING;
-	// tone(BUZZER_PIN, 2000, 500);
-
-	scope.setTarget( { 250.43, 36.47 });
+	scope.initialize();
 }
 
 
@@ -221,14 +187,16 @@ void loop() {
 	#ifdef HOME_NOW_PIN
 		// If the HOME button is installed and pressed/switched on start homing mode
 		const bool currentlyHoming = digitalRead(HOME_NOW_PIN) == HIGH;
+
+		if (currentlyHoming) {
+			// The telescope stands still and waits for the next target selection (which it then assumes it is pointing at)
+			// Setting homed to false also sets the telescope to operating mode Mode::HOMING
+			scope.setHomed(false);
+		}
 	#else
 		// If no HOME button exists, it never gets pressed, so we define it as false
 		#define currentlyHoming false
 	#endif
-
-	if (currentlyHoming) {
-		operating_mode = OPMODE_HOMING;
-	}
 
 	// Get the current position from our GPS module. If no GPS is installed
 	// or no fix is available values from EEPROM are used
@@ -237,7 +205,7 @@ void loop() {
 	scope.updateGpsPosition(pos);
 
 	// Homing needs to be performed in HOMING mode
-	bool requiresHoming = operating_mode == OPMODE_HOMING;
+	bool requiresHoming = scope.getMode() == Mode::HOMING;
 
 	// Handle serial serial communication. Returns true if homing was just performed
 	bool justHomed = handleSerialCommunication(scope, gps, requiresHoming);
@@ -248,10 +216,8 @@ void loop() {
 			|| (homeImmediately && loopIteration == 0)) {
 		justHomed = true;
 
-		// Start tracking after homing
-		operating_mode = OPMODE_TRACKING;
-
-		scope.setHomed();
+		// Sets the telescope to operating mode Mode::TRACKING
+		scope.setHomed(true);
 	}
 
 	// Turn the stepper motors on or off, depending on state of STEPPERS_ON_PIN

@@ -214,12 +214,12 @@ void setRightAscension(Mount &telescope) {
 	const int hrs = multi_char_to_int(receivedChars[3], receivedChars[4]);
 	const int mins = multi_char_to_int(receivedChars[6], receivedChars[7]);
 	const int secs = multi_char_to_int(receivedChars[9], receivedChars[10]);
-	
-	Serial.println();
-	Serial.println("Changing RA");
-	Serial.println(ra_deg);
+
+	DEBUG_PRINTLN();
+	DEBUG_PRINTLN("Changing RA");
+	DEBUG_PRINTLN(ra_deg);
 	ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
-	Serial.println(ra_deg);
+	DEBUG_PRINTLN(ra_deg);
 
 	// Set the telescope target
 	RaDecPosition scopeTarget = telescope.getTarget();
@@ -240,11 +240,11 @@ void setDeclination(Mount &telescope) {
 	const int mins = multi_char_to_int(receivedChars[7], receivedChars[8]);
 	const int secs = multi_char_to_int(receivedChars[10], receivedChars[11]);
 
-	Serial.println();
-	Serial.println("Changing DEC");
-	Serial.println(dec_deg);
+	DEBUG_PRINTLN();
+	DEBUG_PRINTLN("Changing DEC");
+	DEBUG_PRINTLN(dec_deg);
 	dec_deg = (secs / 3600.0 + mins / 60.0 + deg) * multi;
-	Serial.println(dec_deg);
+	DEBUG_PRINTLN(dec_deg);
 	isPositiveDeclination = multi > 0;
 
 	// Set the telescope target
@@ -297,6 +297,9 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 			if (receivedChars[3] == '1') {
 				telescope.setHomed(true);
 				Serial.println("Enabled tracking");
+
+				newData = false;
+				return true;
 			}
 			else if (receivedChars[3] == '0') {
 				telescope.setHomed(false);
@@ -409,37 +412,54 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 	return false;
 }
 
-// Returns true if homing command was sent
-int lastDebugIndex = -1;
-long lastDbgIndexSwitch = 0;
-bool dbgBtnPressed = false;
+#ifdef TARGET_SELECT_PIN
+	// If there is a target select button we need some variables
+	int selectedDebugTargetIndex = -1;
+	unsigned long timeOfLastTargetChange = 0;
+	bool targetSelectButtonPressed = false;
+#endif
+
 bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
+	// Receives the next command character, if available
 	receiveCommandChar();
-	bool ret = parseCommands(telescope, gps, homingMode);
-	if (!dbgBtnPressed && digitalRead(TARGET_SELECT_PIN) == LOW) {
-		// Only one button klick per 0.5 seconds is valid
-		if (lastDbgIndexSwitch + 500 < millis()) {
-			lastDbgIndexSwitch = millis();
-			Serial.println("Switching target to " + String((lastDebugIndex + 1)));
-			dbgBtnPressed = true;
-			lastDebugIndex = (lastDebugIndex + 1) % 10;
-			ra_deg = debugPositions[lastDebugIndex][0];
-			dec_deg = debugPositions[lastDebugIndex][1];
-			RaDecPosition newPos = { debugPositions[lastDebugIndex][0], debugPositions[lastDebugIndex][1] };
-			telescope.setTarget(newPos);
 
-			// Confirmation buzz
-			#ifdef BUZZER_PIN
-				digitalWrite(BUZZER_PIN, HIGH);
-				delay(500);
-				digitalWrite(BUZZER_PIN, LOW);
-			#endif
+	// Once a complete command has been received, this parses and runs the command
+	// Returns true, if the received command triggered a change from Mode::HOMING to Mode::TRACKING
+	bool switchedToTracking = parseCommands(telescope, gps, homingMode);
+
+	// If we have a target select button it gets handled here
+	#ifdef TARGET_SELECT_PIN
+		if (!targetSelectButtonPressed && digitalRead(TARGET_SELECT_PIN) == LOW) {
+			// Only one button click per 0.5 seconds is valid
+			if (timeOfLastTargetChange + 500 < millis()) {
+				timeOfLastTargetChange = millis();
+
+				// Track the button state
+				targetSelectButtonPressed = true;
+
+				// Increase the selected target by 1 and wrap around to 0 if the result is larger than the max index
+				selectedDebugTargetIndex = (selectedDebugTargetIndex + 1) % (maxDebugPos + 1);
+
+				ra_deg = debugPositions[selectedDebugTargetIndex][0];
+				dec_deg = debugPositions[selectedDebugTargetIndex][1];
+				RaDecPosition newPos = { debugPositions[selectedDebugTargetIndex][0], debugPositions[selectedDebugTargetIndex][1] };
+				telescope.setTarget(newPos);
+
+				// Print confirmation and buzz for half a second
+				DEBUG_PRINTLN("Switching target to " + String(selectedDebugTargetIndex));
+				#ifdef BUZZER_PIN
+					digitalWrite(BUZZER_PIN, HIGH);
+					delay(500);
+					digitalWrite(BUZZER_PIN, LOW);
+				#endif
+			}
 		}
-	}
-	if (dbgBtnPressed && digitalRead(TARGET_SELECT_PIN) == HIGH) {
-		// Button released
-		dbgBtnPressed = false;
-	}
 
-	return ret;
+		if (targetSelectButtonPressed && digitalRead(TARGET_SELECT_PIN) == HIGH) {
+			// Button released
+			targetSelectButtonPressed = false;
+		}
+	#endif
+
+	return switchedToTracking;
 }

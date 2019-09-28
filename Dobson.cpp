@@ -38,6 +38,12 @@ Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGP
 	createdNrs += 1;
 }
 
+void Dobson::initialize() {
+	setMode(Mode::HOMING);
+	
+	setTarget({ 250.43, 36.47 });
+}
+
 // Calculate new motor targets. This does not yet execute the move
 void Dobson::calculateMotorTargets() {
 	// Get the local sidereal time and store it in a private value (it gets referenced by the azAltToRaDec method)

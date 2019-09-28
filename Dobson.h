@@ -24,6 +24,9 @@ class Dobson: public Mount {
 public:
 	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps);
 
+	// This runs at the very end of the Arduino setup() function and sets the operating mode and initial target
+	void initialize();
+
 	// Calculates the next targets for the steppers, based on the GPS position, current time and target
 	// This does not yet update the stepper motor targets, but stores them in the protected member variable _steppersTarget
 	// It also calls the azAltToRaDec() method with the current stepper position and stores the result
