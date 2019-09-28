@@ -33,9 +33,9 @@ public:
 	}
 
 	void setTarget(RaDecPosition target) {
-		Serial.println("Target set");
-		Serial.println(target.rightAscension);
-		Serial.println(target.declination);
+		DEBUG_PRINTLN("Target set");
+		DEBUG_PRINTLN(target.rightAscension);
+		DEBUG_PRINTLN(target.declination);
 		_lastTarget = _target;
 		_target = target;
 	}

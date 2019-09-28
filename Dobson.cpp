@@ -14,10 +14,28 @@
 
 #include "./Dobson.h"
 
+int createdNrs = 0;
+
+void clamp360(double &value) {
+	while (value < 0.0) {
+		value += 360;
+	}
+	while(value >= 360.0) {
+		value -= 360;
+	}
+}
+void nclamp360(double& value) {
+	while (value <= -360.0) {
+		value += 360;
+	}
+	while (value >= 360.0) {
+		value -= 360;
+	}
+}
 
 Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps) :
 		_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _gps(gps) {
-	// no code here?
+	createdNrs += 1;
 }
 
 // Calculate new motor targets. This does not yet execute the move
@@ -44,8 +62,12 @@ void Dobson::calculateMotorTargets() {
 	const double SinGpsLatitude = sin(RadGpsLatitude);
 
 	// Trust me, this works
-	const double targetAltitudeDegrees = degrees(asin( SinTargetDeclination * SinGpsLatitude + CosTargetDeclination * CosGpsLatitude * CosHourAngle ));
-	const double targetAzimuthDegrees = degrees(acos((SinTargetDeclination - SinGpsLatitude * sin(radians(targetAltitudeDegrees))) / (CosGpsLatitude * cos(radians(targetAltitudeDegrees)))));
+	double targetAltitudeDegrees = degrees(asin( SinTargetDeclination * SinGpsLatitude + CosTargetDeclination * CosGpsLatitude * CosHourAngle ));
+	double targetAzimuthDegrees = degrees(acos((SinTargetDeclination - SinGpsLatitude * sin(radians(targetAltitudeDegrees))) / (CosGpsLatitude * cos(radians(targetAltitudeDegrees)))));
+
+
+	clamp360(targetAzimuthDegrees);
+	clamp360(targetAltitudeDegrees);
 
 	_targetDegrees = {
 		targetAzimuthDegrees, // Azimuth
@@ -120,8 +142,8 @@ void Dobson::move() {
 		_didMove = true;
 
 		// Difference between the last target and the current one
-		diffAz = _steppersLastTarget.azimuth - _steppersTarget.azimuth;
-		diffAlt = _steppersLastTarget.altitude - _steppersLastTarget.altitude;
+		diffAz = _steppersTarget.azimuth - _steppersLastTarget.azimuth;
+		diffAlt = _steppersTarget.altitude - _steppersLastTarget.altitude;
 
 		// Store the last target
 		_steppersLastTarget.azimuth = _steppersTarget.azimuth;
@@ -131,7 +153,7 @@ void Dobson::move() {
 		_didMove = false;
 	}
 
-	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT
+	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE
 		if (_didMove) {
 			DEBUG_PRINT_V(
 				_gps.hasFix() ?
@@ -142,14 +164,16 @@ void Dobson::move() {
 			DEBUG_PRINT(_gpsPosition.latitude);
 			DEBUG_PRINT(", LNG ");
 			DEBUG_PRINT(_gpsPosition.longitude);
+			DEBUG_PRINT(", TelescopeObjects: ");
+			DEBUG_PRINT(createdNrs);
 			DEBUG_PRINT("; RA ");
 			DEBUG_PRINT(_target.rightAscension);
 			DEBUG_PRINT(" and DEC ");
 			DEBUG_PRINT(_target.declination);
-			DEBUG_PRINT(" to ALTAZ is: AZ ");
-			DEBUG_PRINT(_targetDegrees.azimuth);
-			DEBUG_PRINT("° ALT ");
+			DEBUG_PRINT(" to ALTAZ is: ");
 			DEBUG_PRINT(_targetDegrees.altitude);
+			DEBUG_PRINT("° / ");
+			DEBUG_PRINT(_targetDegrees.azimuth);
 			DEBUG_PRINT("°; The time is: ");
 			DEBUG_PRINT(hour());
 			DEBUG_PRINT(":");
@@ -169,6 +193,32 @@ void Dobson::move() {
 			DEBUG_PRINT("/dec ");
 			DEBUG_PRINT(_altitudeStepper.currentPosition());
 		}
+	#elif defined DEBUG_SERIAL_STEPPER_MOVEMENT
+		if (_didMove) {
+			DEBUG_PRINT("Desired:    ");
+
+			DEBUG_PRINT("Az/Alt ");
+			DEBUG_PRINT(_targetDegrees.azimuth);
+			DEBUG_PRINT("° / ");
+			DEBUG_PRINT(_targetDegrees.altitude);
+			DEBUG_PRINT("°");
+
+			DEBUG_PRINT("   Ra/Dec ");
+			DEBUG_PRINT(_target.rightAscension);
+			DEBUG_PRINT("° / ");
+			DEBUG_PRINT(_target.declination);
+			DEBUG_PRINT("°");
+
+			DEBUG_PRINT("   Steps Az/Alt ");
+			DEBUG_PRINT(_steppersTarget.azimuth);
+			DEBUG_PRINT(" / ");
+			DEBUG_PRINT(_steppersTarget.altitude);
+
+			DEBUG_PRINT("   Diff Az/Alt ");
+			DEBUG_PRINT(diffAz);
+			DEBUG_PRINT(" / ");
+			DEBUG_PRINT(diffAlt);
+		}
 	#endif
 }
 
@@ -178,27 +228,13 @@ void Dobson::move() {
  * // TODO Document this a bit better
  */
 RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
-	// Calculate Altitude in Degrees
+	// Azimuth and Altitude in Degrees
+	double Azimuth = position.azimuth;
 	double Altitude = position.altitude;
 
-	// Ensure that Altitude is between 0 and 360
-	while (Altitude < 0.0) {
-		Altitude += 360.;
-	}
-	while (Altitude >= 360.0) {
-		Altitude -= 360.;
-	}
-
-	// Azimuth in Degrees
-	double Azimuth = position.azimuth;
-
-	// Ensure that Azimuth is between 0 and 360
-	while (Azimuth < 0.0) {
-		Azimuth += 360.0;
-	}
-	while (Azimuth >= 360.0) {
-		Azimuth -= 360.0;
-	}
+	// Ensure that Azimuth and Altitude are between 0 and 360
+	clamp360(Azimuth);
+	clamp360(Altitude);
 
 	// Convert Altitude and Azimuth to Radians
 	Altitude = radians(Altitude);
@@ -223,38 +259,32 @@ RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
 	// Hour angle in degrees
 	double HourAngle = degrees(asin(((0.0-sin(Azimuth)) * cos(Altitude)) / cos(Declination)));
 
-	// The resulting Right Ascension is LST - HA
-	double RightAscension = _currentLocalSiderealTime - HourAngle;
+	// The resulting Right Ascension is LST - HA (but LST + HA works???)
+	double RightAscension = _currentLocalSiderealTime + HourAngle;
 
 	// Convert Declination to degrees, since it's not needed in radians anymore
 	Declination = degrees(Declination);
 
 	// Ensure that RightAscension and Declination are between 0 and 360
-	while (RightAscension < 0.0) {
-		RightAscension += 360.0;
-	}
-	while (RightAscension >= 360.0) {
-		RightAscension -= 360.0;
-	}
-	while (Declination < 0.0) {
-		Declination += 360.0;
-	}
-	while (Declination >= 360.0) {
-		Declination -= 360.0;
-	}
+	clamp360(RightAscension);
+	nclamp360(Declination);
 
 	// From here on only debug outputs happen in this method
 	#ifdef DEBUG_SERIAL_POSITION_CALC
 		if (_didMove) {
-			DEBUG_PRINT("Altitude: ");
-			DEBUG_PRINT(_altitudeStepper.currentPosition());
-			DEBUG_PRINT("; Azimuth: ");
-			DEBUG_PRINT(_azimuthStepper.currentPosition());
+			DEBUG_PRINT("Calculated: ");
+			
+			DEBUG_PRINT("Az/Alt ");
+			DEBUG_PRINT(degrees(Azimuth));
+			DEBUG_PRINT(" °/ ");
+			DEBUG_PRINT(degrees(Altitude));
+			DEBUG_PRINT("°");
 
-			DEBUG_PRINT("; RightAscension: ");
+			DEBUG_PRINT("   Ra/Dec ");
 			DEBUG_PRINT(RightAscension);
-			DEBUG_PRINT("; Declination: ");
-			DEBUG_PRINTLN(Declination);
+			DEBUG_PRINT("° / ");
+			DEBUG_PRINT(Declination);
+			DEBUG_PRINTLN("°");
 		}
 	#endif
 

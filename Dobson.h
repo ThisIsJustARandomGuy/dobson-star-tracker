@@ -58,7 +58,7 @@ protected:
 	// Target position in degrees
 	AzAltPosition _targetDegrees;
 
-	// The position the steppers were, when homing was performed
+	// The position the steppers were at, when homing was performed
 	AzAltPosition _steppersHomed;
 
 	// Current stepper target position for the steppers (in steps). It is written to at the end of calculateMotorTargets()

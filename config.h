@@ -56,7 +56,9 @@
 #define DEBUG_SERIAL
 
 // Uncomment to enable debug statements regarding stepper movement
-//#define DEBUG_SERIAL_STEPPER_MOVEMENT
+#define DEBUG_SERIAL_STEPPER_MOVEMENT
+// Uncomment to enable verbose debug statements regarding stepper movement (overrides DEBUG_SERIAL_STEPPER_MOVEMENT)
+//#define DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE
 
 // Uncomment to enable debug statements regarding position calculations
 #define DEBUG_SERIAL_POSITION_CALC

@@ -33,7 +33,8 @@ Dobson scope(azimuth, altitude, gps);
 #define OPMODE_INITIALIZING 0 // Motors off; Tracking NOT active; Desired/Reported stepper position NOT ACCURATE
 
 // OPMODE_HOMING
-// While this mode is on, the telescope stands still and assumes that it is correctly pointing at the desired position
+// While this mode is on, the telescope stands still and assumes that it is correctly pointing at the desired position.
+// Once a target gets selected the telescope assumes that this is where it's pointed at and starts tracking it
 //
 // Motors are on: YES
 // Tracking active: NO
@@ -46,9 +47,7 @@ Dobson scope(azimuth, altitude, gps);
 // Motors are on: YES
 // Tracking active: YES
 // Desired/Reported stepper position updates: YES
-
-#define OPMODE_TRACKING 2 // Motors on; Tracking IS active; Desired/Reported stepper position DOES update
-
+#define OPMODE_TRACKING 2
 
 // Start with OPMODE_INITIALIZING
 byte operating_mode = OPMODE_INITIALIZING;
@@ -101,16 +100,17 @@ void setupSteppers() {
 			.start(STEPPER_INTERRUPT_FREQ);
 	#endif
 
+	DEBUG_PRINT("Steppers enabled:  ")
 	#ifdef AZ_ENABLE
-		DEBUG_PRINTLN("DBG Az  ON");
+		DEBUG_PRINT("Az=ON");
 	#else
-		DEBUG_PRINTLN("DBG Az  OFF");
+		DEBUG_PRINT("Az=OFF");
 	#endif
 
 	#ifdef ALT_ENABLE
-		DEBUG_PRINTLN("DBG Alt ON");
+		DEBUG_PRINTLN("  Alt=ON");
 	#else
-		DEBUG_PRINTLN("DBG Alt OFF");
+		DEBUG_PRINTLN("  Alt=OFF");
 	#endif
 } // setupSteppers
 
@@ -118,21 +118,21 @@ void setupSteppers() {
 /*
  * This function turns stepper motor drivers on, if these conditions are met:
  * STEPPERS_ON_PIN reads HIGH
- * operating mode is not OPMODE_HOMING
+ * operating mode is not OPMODE_INITIALIZING
  * TODO Maybe the conditions need to change (esp. the opmode one)
  */
 void setSteppersOnOffState() {
-	const bool isHoming = operating_mode == OPMODE_HOMING;
+	const bool isInitialized = operating_mode != OPMODE_INITIALIZING;
 
 	#ifdef STEPPERS_ON_PIN
 		// If the STEPPERS_ON switch is installed, check its state
 		const bool steppersSwitchOn = digitalRead(STEPPERS_ON_PIN) == HIGH;
 	#else
-		// If no STEPPERS_ON switch is installed, we define its state as enabled
+		// If no STEPPERS_ON switch is installed, define its state as enabled
 		#define steppersSwitchOn true
 	#endif
 
-	if (steppersSwitchOn && !isHoming) {
+	if (steppersSwitchOn && isInitialized) {
 		// Motors on
 		motorsEnabled = true;
 		#ifdef AZ_ENABLE
@@ -154,7 +154,14 @@ void setSteppersOnOffState() {
 }
 
 /**
- * Run various tasks required to initialize
+ * Run various tasks required to initialize the following:
+ * Serial connection
+ * GPS module
+ * Serial communication
+ * Stepper motors
+ * Buzzer
+ * Various buttons
+ * Set an initial target for the telescope
  */
 void setup() {
 	#ifdef BOARD_ARDUINO_MEGA
@@ -162,7 +169,7 @@ void setup() {
 	#elif defined BOARD_ARDUINO_UNO
 		Serial.begin(9600);
 	#endif
-	Serial.println("I'm here");
+	DEBUG_PRINTLN("Initializing");
 	// This initializes the GPS module
 	// TODO Wrap in ifdef
 	initGPS (gps);
@@ -198,6 +205,18 @@ void setup() {
 }
 
 
+/*
+ * Main program loop. It does roughly the following (in order)
+ * 1) Check whether the Home Button is pressed. If so, set the scope back to homing mode
+ * 2) Get updates from the GPS module and tell the telescope instance about it
+ * 3) Handle communication over serial
+ * 4) Check whether homing mode should end (TODO This should move to the telescope class)
+ * 5) Turn the stepper drivers on/off
+ * 6) Every 10.000 loop iterations: 
+ *    - Run the necessary calculations to update the telescope target position
+ *    - Update the target values for the steppers
+ * 7) Debug communications, if enabled
+*/
 void loop() {
 	#ifdef HOME_NOW_PIN
 		// If the HOME button is installed and pressed/switched on start homing mode
