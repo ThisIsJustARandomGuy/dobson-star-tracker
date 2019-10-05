@@ -225,13 +225,19 @@ void loop() {
 
 	// Every 10.000 loop iterations: Handle motor movements.
 	// TODO This should be dynamic, based on how long calculations/serial comms took and/or if a new command is available
-	if (loopIteration >= 10000 || loopIteration == 0) {
+	if (loopIteration >= 30000 || loopIteration == 0) {
 		loopIteration = 0;
 
 		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT)
 			// Start timing the calculation
 			long micros_start = micros();
 		#endif
+
+		// Constantly increase the selected target for testing
+		/*RaDecPosition scopeTarget = scope.getTarget();
+		scopeTarget.rightAscension += .01;
+		while(scopeTarget.rightAscension >= 360.0) scopeTarget.rightAscension -= 360.0;
+		scope.setTarget(scopeTarget);*/
 
 		// This function converts the coordinates
 		scope.calculateMotorTargets();

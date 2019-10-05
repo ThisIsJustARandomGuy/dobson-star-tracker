@@ -14,7 +14,7 @@
 #define AZ_ENABLE_PIN       38     // RAMPS 1.4 X stepper
 #define AZ_STEP_PIN         54     // RAMPS 1.4
 #define AZ_DIR_PIN          55     // RAMPS 1.4
-#define AZ_STEPS_PER_REV   119467  // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope (my setup: 3200 : 1 and 560 : 15)
+#define AZ_STEPS_PER_REV   119467UL  // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope (my setup: 3200 : 1 and 560 : 15)
 #define AZ_MAX_ACCEL       300     // Maximum acceleration for the azimuth stepper
 #define AZ_MAX_SPEED       4000    // Maximum speed for the azimuth stepper
 
@@ -25,7 +25,7 @@
 #define ALT_ENABLE_PIN       56    // RAMPS 1.4 Y stepper
 #define ALT_STEP_PIN         60    // RAMPS 1.4
 #define ALT_DIR_PIN          61    // RAMPS 1.4
-#define ALT_STEPS_PER_REV    36960 // for 90degrees //147840 for a full rotation // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope (my setup: 5.18:1 and 3200 : 1 and 105 : 12)
+#define ALT_STEPS_PER_REV    36960UL // for 90degrees //147840 for a full rotation // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope (my setup: 5.18:1 and 3200 : 1 and 105 : 12)
 #define ALT_MAX_ACCEL        400   // Maximum acceleration for the altitude stepper
 #define ALT_MAX_SPEED        10000 // Maximum speed for the altitude stepper
 
@@ -88,7 +88,8 @@
 
 // Timezone correction to convert FROM your current time to UTC. We could use GPS to get this value, but it would be difficult
 // TODO Invert this value as it is confusing to have to set a negative X for the timezone UTC+X
-#define TIMEZONE_CORRECTION_H -2
+// -2
+#define TIMEZONE_CORRECTION_H 0
 
 // Updates from the GPS module are ignored if you uncomment the next line
 // TODO Does not work currently
@@ -108,6 +109,8 @@
 #ifdef BOARD_ARDUINO_UNO
 #define STEPPER_INTERRUPT_FREQ 100 // every 0.1ms
 #endif
+
+
 
 
 // ----------------------------------------------------------------------

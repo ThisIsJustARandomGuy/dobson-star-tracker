@@ -15,13 +15,15 @@
 
 // These are the coordinates that the telescope initially thinks it's pointed at.
 // 
-const double ra_h = 16.0;
-const double ra_m = 41.7;
+const double ra_h = 0;// 16.0;
+const double ra_m = 0;// 41.7;
 double ra_deg = (ra_h + ra_m / 60.0) * 15.0;
 
-const double dec_d = 36.0;
-const double dec_m = 28.0;
+const double dec_d = 0;// 36.0;
+const double dec_m = 0;// 28.0;
 double dec_deg = dec_d + dec_m / 60.0;
+
+RaDecPosition futurePosition = { 0, 0 };
 
 boolean isPositiveDeclination = false;
 
@@ -42,17 +44,20 @@ const char endMarker = '#'; // Commands end with this character
 
 // These are the positions that can be cycled through with the position switch
 const double debugPositions[][2] = {
-	{ ra_deg, dec_deg},
-	{ 279.2354166, 38.78555556 }, // Vega
-	{ 213.9083333 , 19.17038889 },    // Arktur
-	{ 37.9624166 , 89.2642777 },    // Polaris
-	{ 15.7, 36.5 },
-	{ 14.7, 36.5 },
-	{ 17.7, 36.5 },
-	{ 18.7, 36.5 },
+	{ 250.42, 36.46 },
+	{ 240.42, 35.46 },
+	{ 230.42, 34.46 },
+	{ 220.42, 33.46 },
+	{ 210.42, 32.46 },
+    { 180.42, 25.46 },
+    { 150.42, 20.46 },
+    { 100.42, 15.46 },
 	{ 19.7, 36.5 },
 	{ 17.7, 38.5 },
-	{ 17.7, 39.5 }
+	{ 17.7, 39.5 },
+	{ 279.2354166, 38.78555556 }, // Vega
+	{ 213.9083333 , 19.17038889 },    // Arktur
+	{ 37.9624166 , 89.2642777 }    // Polaris
 };
 
 const char* positionNames[] = {
@@ -206,9 +211,12 @@ void moveQuit(Mount& scope) {
 // Start the requested move
 // TODO This currently doesn't really work, since moves are immediately executed once
 // a new position is requested.
-bool moveStart(bool homingMode) {
+bool moveStart(bool homingMode, Mount& scope) {
 	// Immediately confirm to Stellarium
 	Serial.print("0");
+
+	DEBUG_PRINTLN("Starting Move");
+	scope.setTarget(futurePosition);
 
 	// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
 	// If homing mode is true we set isHomed to true
@@ -239,9 +247,10 @@ void setRightAscension(Mount &telescope) {
 	DEBUG_PRINTLN(ra_deg);
 
 	// Set the telescope target
-	RaDecPosition scopeTarget = telescope.getTarget();
+	/*RaDecPosition scopeTarget = telescope.getTarget();
 	scopeTarget.rightAscension = ra_deg;
-	telescope.setTarget(scopeTarget);
+	telescope.setTarget(scopeTarget);*/
+	futurePosition.rightAscension = ra_deg;
 	
 	// If there is a target select pin we need to reset the selected position to "none"
 	#ifdef TARGET_SELECT_PIN
@@ -270,9 +279,10 @@ void setDeclination(Mount &telescope) {
 	isPositiveDeclination = multi > 0;
 
 	// Set the telescope target
-	RaDecPosition scopeTarget = telescope.getTarget();
+	/*RaDecPosition scopeTarget = telescope.getTarget();
 	scopeTarget.declination = dec_deg;
-	telescope.setTarget(scopeTarget);
+	telescope.setTarget(scopeTarget);*/
+	futurePosition.declination = dec_deg;
 	
 	// If there is a target select pin we need to reset the selected position to "none"
 	#ifdef TARGET_SELECT_PIN
@@ -300,7 +310,7 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// MS: Move Start
 			// The function returning true means that isHomed was set to true.
-			if (moveStart(homingMode)) {
+			if (moveStart(homingMode, telescope)) {
 				// Ignores the next movement update and treats it as a home command instead
 				telescope.ignoreUpdates();
 

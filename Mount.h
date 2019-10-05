@@ -80,9 +80,12 @@ public:
 	}
 
 	void setTarget(RaDecPosition target) {
-		DEBUG_PRINTLN("Target set");
-		DEBUG_PRINTLN(target.rightAscension);
-		DEBUG_PRINTLN(target.declination);
+		DEBUG_PRINTLN();
+		DEBUG_PRINT("Target:     Ra/Dec ");
+		DEBUG_PRINT(target.rightAscension);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT(target.declination);
+		DEBUG_PRINT("°");
 		_lastTarget = _target;
 		_target = target;
 	}

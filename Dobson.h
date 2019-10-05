@@ -57,7 +57,13 @@ protected:
 
 	// This is written to (and used) by calculateMotorTargets() and just used by azAltToRaDec()
 	double _currentLocalSiderealTime;
+	double _targetHourAngle;
+	double _calculatedHourAngle;
 	
+	// Target position in radians
+	AzAltPosition _targetRad;
+	RaDecPosition _calculatedRad;
+
 	// Target position in degrees
 	AzAltPosition _targetDegrees;
 
