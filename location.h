@@ -10,16 +10,14 @@ struct TelescopePosition {
 
 
 struct RaDecPosition {
-	double rightAscension;
-	double declination;
+	double rightAscension; // Azimuth in case of the DirectDrive
+	double declination;    // Altitude in case of the DirectDrive
 };
 
 const double pi = 3.14159265358979324;
 
-int days_since_j2k(int year);
-int days_to_beginning_of_month(int year, int month);
+double green_sidereal_time(double jd_ut);
 double get_local_sidereal_time(const double degrees_longitude);
-double get_hour_angle(const double local_sidereal_time, const double degrees_right_ascension);
 
 void loadFromEEPROM();
 void updateEEPROM(float altitude, float latitude, float longitude, int hours,

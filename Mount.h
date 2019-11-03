@@ -10,6 +10,13 @@
 
 #include "./location.h"
 
+// Type used to store positions in horizontal coordinates (alt/az)
+template<typename T>
+struct AzAlt {
+	T azimuth;
+	T altitude;
+};
+
 enum Mode {
 	// INITIALIZING
 	// This is only on when initializing critical hardware such as the stepper drivers.

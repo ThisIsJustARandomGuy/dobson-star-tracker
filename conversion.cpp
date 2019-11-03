@@ -9,12 +9,16 @@
 #include <TimeLib.h>
 
 #include "./config.h"
+#include "./macros.h"
 #include "./conversion.h"
 #include "./location.h"
 
+#ifdef SERIAL_DISPLAY_ENABLED
+	#include "./display_unit.h"
+#endif
 
 // These are the coordinates that the telescope initially thinks it's pointed at.
-// 
+// TODO This needs to be replaced by. Maybe by a config variable or depending on the opmode?
 const double ra_h = 0;// 16.0;
 const double ra_m = 0;// 41.7;
 double ra_deg = (ra_h + ra_m / 60.0) * 15.0;
@@ -43,6 +47,9 @@ const char endMarker = '#'; // Commands end with this character
 
 
 // These are the positions that can be cycled through with the position switch
+// TODO Depending on the selected MOUNT_TYPE these need to change
+// TODO If a diplay unit is connected, maybe these could be transferred somehow? Need to save memory on the nano though
+// TODO Load from SD card?
 const double debugPositions[][2] = {
 	{ 250.42, 36.46 },
 	{ 240.42, 35.46 },
@@ -91,10 +98,13 @@ int selectedDebugTargetIndex = -1;
 unsigned long timeOfLastTargetChange = 0;
 #endif
 
-// This gets called by the Arduino setup() function and initializes various required variables
-void initCommunication() {
-	sprintf(txAR, "%02d:%02d:%02d#", int(ra_h), int(ra_m), int(0));
-	sprintf(txDEC, "%c%02d%c%02d:%02d#", dec_d > 0 ? '+' : '-', int(dec_d), 223, int(dec_m), int(0));
+void getRightAscension(Mount& scope);
+void getDeclination(Mount& scope);
+
+// This gets called by the Arduino setup() function and sends the initial position to Stellarium
+void initCommunication(Mount& telescope) {
+	getRightAscension(telescope);
+	getDeclination(telescope);
 }
 
 /*
@@ -172,6 +182,7 @@ void printHelp() {
 	Serial.println(":DBGMID# Increase Declination by 1 degree");
 	Serial.println(":DBGMDD# Decrease Declination by 1 degree");
 	Serial.println(":DBGDM[00-99]# Disable Motors for XX seconds");
+	Serial.println(":DBGDSP# Send status update to display / serial console");
 }
 
 
@@ -202,15 +213,14 @@ void getDeclination(Mount &scope) {
 	Serial.print(txDEC);
 }
 
-// Quit the current move
+// Quit the current move by setting the target to the current position.
+// This does not enable/disable tracking (if supported)
 void moveQuit(Mount& scope) {
 	// This sets the target to the position the telescope is actually pointing at, thus stopping any currently running moves
 	scope.setTarget(scope.getCurrentPosition());
 }
 
 // Start the requested move
-// TODO This currently doesn't really work, since moves are immediately executed once
-// a new position is requested.
 bool moveStart(bool homingMode, Mount& scope) {
 	// Immediately confirm to Stellarium
 	Serial.print("0");
@@ -231,6 +241,7 @@ bool moveStart(bool homingMode, Mount& scope) {
 
 
 // Set Right Ascension (in hours, minutes and seconds)
+// This doesn't yet set it on the telescope (happens in moveStart())
 void setRightAscension(Mount &telescope) {
 	// Immediately confirm to Stellarium
 	Serial.print("1");
@@ -246,10 +257,7 @@ void setRightAscension(Mount &telescope) {
 	ra_deg = (hrs + mins / 60. + secs / 3600.) * 15;
 	DEBUG_PRINTLN(ra_deg);
 
-	// Set the telescope target
-	/*RaDecPosition scopeTarget = telescope.getTarget();
-	scopeTarget.rightAscension = ra_deg;
-	telescope.setTarget(scopeTarget);*/
+	// Store the new target right ascension
 	futurePosition.rightAscension = ra_deg;
 	
 	// If there is a target select pin we need to reset the selected position to "none"
@@ -259,6 +267,7 @@ void setRightAscension(Mount &telescope) {
 }
 
 // Set target Declination (in +/- degrees, minutes and seconds)
+// This doesn't yet set it on the telescope (happens in moveStart())
 void setDeclination(Mount &telescope) {
 	// Immediately confirm to Stellarium
 	Serial.print("1");
@@ -278,10 +287,7 @@ void setDeclination(Mount &telescope) {
 	DEBUG_PRINTLN(dec_deg);
 	isPositiveDeclination = multi > 0;
 
-	// Set the telescope target
-	/*RaDecPosition scopeTarget = telescope.getTarget();
-	scopeTarget.declination = dec_deg;
-	telescope.setTarget(scopeTarget);*/
+	// Store the new target declination.
 	futurePosition.declination = dec_deg;
 	
 	// If there is a target select pin we need to reset the selected position to "none"
@@ -315,18 +321,20 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 				telescope.ignoreUpdates();
 
 				newData = false;
+				// Homing was just performed
 				return true;
 			}
 			else {
+				// The telescope should not ignore movement updates once homed
 				telescope.ignoreUpdates(false);
 			}
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'r') {
 			// Set Right Ascension (in hours, minutes and seconds)
-			telescope.ignoreUpdates();
+			//telescope.ignoreUpdates();
 			setRightAscension(telescope);
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target Declination (in degrees, minutes and seconds)
-			telescope.ignoreUpdates();
+			//telescope.ignoreUpdates();
 			setDeclination(telescope);
 		}
 		else if (receivedChars[0] == 'T' && receivedChars[1] == 'R' && receivedChars[2] == 'K') {
@@ -442,8 +450,15 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 				Serial.print("Longitude  ... ");
 				Serial.println(String(gps.Longitude, 6));
 			}
-		} else if (receivedChars[0] == 'H' && receivedChars[1] == 'L'
-				&& receivedChars[2] == 'P') {
+			#ifdef SERIAL_DISPLAY_ENABLED
+				else if (receivedChars[3] == 'D' && receivedChars[4] == 'S' && receivedChars[5] == 'P') {
+					// Send the "Status: Online" command to the display
+					Serial.println("Sending status update (online) to display");
+					display_statusUpdate(telescope);
+					Serial.println("Done...");
+				}
+			#endif
+		} else if (receivedChars[0] == 'H' && receivedChars[1] == 'L' && receivedChars[2] == 'P') {
 			printHelp();
 		} else {
 			Serial.println("ERROR: Unknown command");
@@ -480,11 +495,11 @@ bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
 				RaDecPosition newPos = { debugPositions[selectedDebugTargetIndex][0], debugPositions[selectedDebugTargetIndex][1] };
 				telescope.setTarget(newPos);
 
-				// Print confirmation and buzz for half a second
+				// Print confirmation and buzz
 				DEBUG_PRINTLN("Switching target to " + String(selectedDebugTargetIndex));
 				#ifdef BUZZER_PIN
 					digitalWrite(BUZZER_PIN, HIGH);
-					delay(500);
+					delay(100);
 					digitalWrite(BUZZER_PIN, LOW);
 				#endif
 			}

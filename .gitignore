@@ -1,2 +1,7 @@
 ./build/*
 /build/
+/__vm
+/Release
+/ARM/Debug
+/.vs
+/.idea

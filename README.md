@@ -50,3 +50,4 @@ The Most important TODOs are as follows (in no particular order)
 + Time keeping: Handle big swings which could happen due to GPS issues
 + EEPROM: Store time and location in EEPROM (Mega) or Flash (Due); Provide a simple API for doing so
 + Motor control: Turn On/Off permanently. Off for X seconds is already implemented as :DBGDM[00-99]#
++ SD card support: Loading a star atlas from a sd card (preferrably connected to the display unit, but direct connection should be possible too)

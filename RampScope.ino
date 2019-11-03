@@ -7,27 +7,50 @@
 
 #include "config.h"
 #include "conversion.h"
-#include "location.h"
-#include "Dobson.h"
+//#include "location.h"
 
-// Which timer library gets loaded depends on the selected board type
+//Load the timer library, depending on the selected BOARD_TYPE
 #ifdef BOARD_ARDUINO_MEGA
-#include <TimerOne.h>
-#elif defined BOARD_ARDUINO_UNO
-#include <DueTimer.h>
+	#include <TimerOne.h>
+#elif defined BOARD_ARDUINO_DUE
+	#include <DueTimer.h>
 #endif
 
-AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN); // Azimuth stepper
+// Load the display unit if it's enabled
+#ifdef SERIAL_DISPLAY_ENABLED
+	#include "display_unit.h"
+#endif
+
+// Include the mount, depending on the selected MOUNT_TYPE
+#ifdef MOUNT_TYPE_DOBSON
+	#include "./Dobson.h"
+#elif defined MOUNT_TYPE_EQUATORIAL
+	#include "./Equatorial.h" // NOT IMPLEMENTED!
+#elif defined MOUNT_TYPE_DIRECT
+	#include "./DirectDrive.h"
+#endif
+
+
+// Global variables
+AccelStepper azimuth(AccelStepper::DRIVER, AZ_STEP_PIN, AZ_DIR_PIN);    // Azimuth stepper
 AccelStepper altitude(AccelStepper::DRIVER, ALT_STEP_PIN, ALT_DIR_PIN); // Altitude stepper
 FuGPS gps(Serial1); // GPS module
 
-Dobson scope(azimuth, altitude, gps);
+#ifdef MOUNT_TYPE_DOBSON
+	Dobson scope(azimuth, altitude, gps);
+#elif defined MOUNT_TYPE_EQUATORIAL
+	Equatorial scope(azimuth, altitude, gps); // NOT IMPLEMENTED!
+#elif defined MOUNT_TYPE_DIRECT
+	DirectDrive scope(azimuth, altitude, gps);
+#endif
 
-// Stores whether stepper drivers are enabled
+// Are the stepper drivers currently enabled?
 bool motorsEnabled = false;
 
-// This increases every loop iteration and gets reset at 10.000
+// This increases every loop iteration and resets at 10.000
 unsigned int loopIteration = 0;
+bool first_loop_run = true;
+long last_motor_update = 0;
 
 #ifdef DEBUG_HOME_IMMEDIATELY
 	const bool homeImmediately = true;
@@ -37,12 +60,14 @@ unsigned int loopIteration = 0;
 
 
 /**
+ * Motor Interrupt handler
  * This is attached to timer interrupt 1. It gets called every STEPPER_INTERRUPT_FREQ / 1.000.000 seconds and moves our steppers
  */
 void moveSteppers() {
 	azimuth.run();
 	altitude.run();
-} // moveSteppers
+}
+
 
 /**
  * Initialize stepper drivers. Sets pin inversion config, max speed and acceleration per stepper
@@ -62,9 +87,9 @@ void setupSteppers() {
 
 	// Setup the stepper interrupt. Depends on the selected board
 	#ifdef BOARD_ARDUINO_MEGA
-		Timer1.initialize(STEPPER_INTERRUPT_FREQ);
-		Timer1.attachInterrupt(&moveSteppers);
-	#elif defined BOARD_ARDUINO_UNO
+		//Timer1.initialize(STEPPER_INTERRUPT_FREQ);
+		//Timer1.attachInterrupt(&moveSteppers);
+	#elif defined BOARD_ARDUINO_DUE
 		Timer.getAvailable()
 			.attachInterrupt(&moveSteppers)
 			.start(STEPPER_INTERRUPT_FREQ);
@@ -126,26 +151,38 @@ void setSteppersOnOffState() {
 /**
  * Run various tasks required to initialize the following:
  * Serial connection
- * GPS module
  * Serial communication
  * Stepper motors
- * Buzzer
- * Various buttons
- * Call the telescope.initialize() method which sets an initial target and the scope operating mode
+ * If enabled:
+ *     Display module
+ *     GPS module
+ *     Buzzer
+ *     Steppers On/Off Button
+ *     Home Now Button
+ *     Target Select Button
+ *
+ * Finally, telescope.initialize() is called. This sets an initial target (depending on the MOUNT_TYPE) and the initial scope operating mode
  */
 void setup() {
-	#ifdef BOARD_ARDUINO_MEGA
-		Serial.begin(9600);
-	#elif defined BOARD_ARDUINO_UNO
-		Serial.begin(9600);
+	#if defined DEBUG && defined DEBUG_SERIAL
+		Serial.begin(SERIAL_BAUDRATE);
 	#endif
+
 	DEBUG_PRINTLN("Initializing");
+
+	// If the serial display is enabled, begin communicating with it
+	#ifdef SERIAL_DISPLAY_ENABLED
+		initDisplayCommunication(scope);
+	#endif
 	// This initializes the GPS module
 	// TODO Wrap in ifdef
-	initGPS (gps);
+	initGPS(gps);
 
-	// This sets up communication and conversion values
-	initCommunication();
+	// Initialize the telescope
+	scope.initialize();
+
+	// This sets up communication with Stellarium / Serial console
+	initCommunication(scope);
 
 	// Initialize stepper motor drivers
 	setupSteppers();
@@ -154,20 +191,31 @@ void setup() {
 	#ifdef BUZZER_PIN
 		pinMode(BUZZER_PIN, OUTPUT);
 		digitalWrite(BUZZER_PIN, HIGH);
-		delay(1000);
+		//delay(1000);
 		digitalWrite(BUZZER_PIN, LOW);
 	#endif
+
 	#ifdef STEPPERS_ON_PIN
 		pinMode(STEPPERS_ON_PIN, INPUT);
 	#endif
+
 	#ifdef HOME_NOW_PIN
 		pinMode(HOME_NOW_PIN, INPUT);
 	#endif
 
-	// Input mode for the select pin is INPUT with PULLUP enabled, so that we can use a longer cable
-	pinMode(TARGET_SELECT_PIN, INPUT_PULLUP);
+	#ifdef TARGET_SELECT_PIN
+		// Input mode for the select pin is INPUT with PULLUP enabled, so that we can use a longer cable
+		pinMode(TARGET_SELECT_PIN, INPUT_PULLUP);
+	#endif
 
-	scope.initialize();
+	//delay(5000);
+
+
+
+	// If the serial display is enabled, begin communicating with it
+	#ifdef SERIAL_DISPLAY_ENABLED
+			initDisplayCommunication(scope);
+	#endif
 }
 
 
@@ -210,6 +258,10 @@ void loop() {
 	// Handle serial serial communication. Returns true if homing was just performed
 	bool justHomed = handleSerialCommunication(scope, gps, requiresHoming);
 
+	#ifdef SERIAL_DISPLAY_ENABLED
+		handleDisplayCommunication(scope, gps, requiresHoming);
+	#endif
+	
 	// If DEBUG_HOME_IMMEDIATELY is defined, homing is performed on first loop iteration.
 	// Otherwise a serial command or HOME_NOW Button are required
 	if (justHomed || currentlyHoming
@@ -225,19 +277,14 @@ void loop() {
 
 	// Every 10.000 loop iterations: Handle motor movements.
 	// TODO This should be dynamic, based on how long calculations/serial comms took and/or if a new command is available
-	if (loopIteration >= 30000 || loopIteration == 0) {
-		loopIteration = 0;
+	if (millis() - last_motor_update >= UPDATE_MOTOR_POS_MS || first_loop_run) {
+		first_loop_run = false;
+		last_motor_update = millis();
 
-		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT)
+		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT) && defined(DEBUG_TIMING)
 			// Start timing the calculation
 			long micros_start = micros();
 		#endif
-
-		// Constantly increase the selected target for testing
-		/*RaDecPosition scopeTarget = scope.getTarget();
-		scopeTarget.rightAscension += .01;
-		while(scopeTarget.rightAscension >= 360.0) scopeTarget.rightAscension -= 360.0;
-		scope.setTarget(scopeTarget);*/
 
 		// This function converts the coordinates
 		scope.calculateMotorTargets();
@@ -245,7 +292,7 @@ void loop() {
 		// This actually makes the motors move to their desired target positions
 		scope.move();
 
-		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT) && defined(DEBUG_SERIAL_TIMING)
+		#if defined(DEBUG) && defined(DEBUG_SERIAL_STEPPER_MOVEMENT) && defined(DEBUG_TIMING)
 			// Debug: If a move took place, output how long it took from beginning to end of the calculation
 			if (scope._didMove) {
 				long calc_time = scope._lastCalcMicros - micros_start;
@@ -258,6 +305,10 @@ void loop() {
 			}
 		#endif
 	}
+
+	#ifdef BOARD_ARDUINO_MEGA
+		moveSteppers();
+	#endif
 
 	loopIteration++;
 }

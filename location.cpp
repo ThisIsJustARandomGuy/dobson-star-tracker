@@ -71,7 +71,7 @@ void updateEEPROM(float altitude, float latitude, float longitude, int hours,
  * Initializes GPS
  */
 TelescopePosition& initGPS(FuGPS &fuGPS) {
-	setTime(23, 38, 0, 28, 8, 2019);
+	//setTime(23, 38, 0, 28, 8, 2019);
 
 	// Begin communicating with the GPS module
 	Serial1.begin(9600);
@@ -100,12 +100,12 @@ bool didSetTimeWithFix = false;
 
 TelescopePosition& handleGPS(FuGPS &fuGPS) {
 
+	// Has the GPS module sent any updates?
 	if (fuGPS.read()) {
-		// We don't know, which message was came first (GGA or RMC).
-		// Thats why some fields may be empty.
-
+		// If there are updates, it's connected and running, obviously
 		gpsAlive = true;
 
+		// Are there enough satellites in view to determine the position/time?
 		if (fuGPS.hasFix() == true) {
 			digitalWrite(LED_BUILTIN, HIGH);
 
@@ -121,13 +121,14 @@ TelescopePosition& handleGPS(FuGPS &fuGPS) {
 				setTime(fuGPS.Hours - TIMEZONE_CORRECTION_H, fuGPS.Minutes, fuGPS.Seconds, fuGPS.Days, fuGPS.Months,
 						fuGPS.Years);
 			}
-#ifdef DEBUG_GPS
-			// Data from GGA or RMC
-			DEBUG_PRINTLN("Location (decimal degrees): https://www.google.com/maps/search/?api=1&query="
-							+ String(fuGPS.Latitude, 6) + ","
-							+ String(fuGPS.Longitude, 6));
+			
+			#ifdef DEBUG_GPS
+				// Data from GGA or RMC
+				DEBUG_PRINTLN("Location (decimal degrees): https://www.google.com/maps/search/?api=1&query="
+								+ String(fuGPS.Latitude, 6) + ","
+								+ String(fuGPS.Longitude, 6));
+			#endif
 
-#endif
 			//storePosition(fuGPS.Altitude, fuGPS.Latitude, fuGPS.Longitude);
 		} else {
 			digitalWrite(LED_BUILTIN, LOW);
@@ -138,24 +139,20 @@ TelescopePosition& handleGPS(FuGPS &fuGPS) {
 				setTime(fuGPS.Hours - TIMEZONE_CORRECTION_H, fuGPS.Minutes, fuGPS.Seconds, fuGPS.Days, fuGPS.Months,
 						fuGPS.Years);
 			}
-			//Serial.println("No GPS fix: , Satellites: " + String(fuGPS.Satellites, 6));
-			//loadPosition();
 		}
 
-#ifdef DEBUG_GPS
-		//Serial.println(String(fuGPS.Hours, 6));
-		//Serial.println((fuGPS.Minutes / 255.00 * 60.00 - 30));
-		//Serial.println(fuGPS.Seconds / 255.00 * 60.00);
-		DEBUG_PRINTLN("Quality: " + String(fuGPS.Quality, 6) + ", Satellites: "
-						+ String(fuGPS.Satellites, 6) + "; Time: "
-						+ String(fuGPS.Hours) + "hh " +
-						String(fuGPS.Minutes) + "mm " +
-						String(fuGPS.Seconds, 6) + "ss; StoredAlt: "
-						+ String(fuGPS.Altitude, 6) + "; StoredLat: "
-						+ String(fuGPS.Latitude, 6) + "; StoredLng: "
-						+ String(fuGPS.Longitude, 6));
-#endif
+		#ifdef DEBUG_GPS
+			DEBUG_PRINTLN("Quality: " + String(fuGPS.Quality, 6) + ", Satellites: "
+							+ String(fuGPS.Satellites, 6) + "; Time: "
+							+ String(fuGPS.Hours) + "hh " +
+							String(fuGPS.Minutes) + "mm " +
+							String(fuGPS.Seconds, 6) + "ss; StoredAlt: "
+							+ String(fuGPS.Altitude, 6) + "; StoredLat: "
+							+ String(fuGPS.Latitude, 6) + "; StoredLng: "
+							+ String(fuGPS.Longitude, 6));
+		#endif
 	} else {
+		// TODO Rewrite the LED status code. At the moment it's rather useless
 		if (millis() % 1000 > 700) {
 			digitalWrite(LED_BUILTIN, HIGH);
 		} else {
@@ -165,14 +162,13 @@ TelescopePosition& handleGPS(FuGPS &fuGPS) {
 
 	// Default is 10 seconds
 	if (fuGPS.isAlive() == false) {
-		//Serial.println("Cannot read");
 		if (gpsAlive == true) {
 			gpsAlive = false;
 
-#ifdef DEBUG_GPS
-			DEBUG_PRINTLN("GPS module not responding with valid data.");
-			DEBUG_PRINTLN("Check wiring or restart.");
-#endif
+			#ifdef DEBUG_GPS
+				DEBUG_PRINTLN("GPS module not responding with valid data.");
+				DEBUG_PRINTLN("Check wiring or restart.");
+			#endif
 		} else {
 			if (millis() % 200 > 100) {
 				digitalWrite(LED_BUILTIN, HIGH);
@@ -185,108 +181,20 @@ TelescopePosition& handleGPS(FuGPS &fuGPS) {
 	return gpsPosition;
 }
 
-//
-// We can easily calculate the following values, but I'm currently too lazy
-//
-// Index 0 is 2019. Later we need to add 0.5 to this. Here we don't so that we can use int here
-const int _days_since_j2k[] = { 6938, 7303, 7669, 8034, 8399, 8764, 9130 };
 
-// Days to the beginning of each month. 0 is January.
-const int _days_to_beginning_of_month_normal_year[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
-const int _days_to_beginning_of_month_leap_year[] = { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 };
-
-int days_since_j2k(int year) {
-	if (year < 2019)
-		return -731.5;
-
-
-	return _days_since_j2k[year - 2019] + 0.5;
-}
-
-// Month parameter starts with 1 = January
-int days_to_beginning_of_month(int year, int month) {
-	bool isLeapYear = true;
-	if (year % 4 != 0) {
-		isLeapYear = false;
-	} else if (year % 100 != 0) {
-		isLeapYear = true;
-	} else if (year % 400 != 0) {
-		isLeapYear = false;
-	}
-	
-	if (isLeapYear) {
-		return _days_to_beginning_of_month_normal_year[month - 1];
-	} else {
-		return _days_to_beginning_of_month_leap_year[month - 1];
-	}
-}
-
-double get_local_sidereal_time2(const double degrees_longitude) {
-	// Current day in UTC (rollover is computed in the loops below)
-	double current_utc_day = day();
-	// Current hour in UTC (rollover is computed in the loops below)
-	double current_utc_hour = hour() + TIMEZONE_CORRECTION_H;
-	// Current time in UTC (rollover is computed in the loops below)
-	double current_utc = current_utc_hour + (minute() / 60.0) + (second() / 3600.0);
-
-	// Ensure that UTC time is between 0 and 24
-	while (current_utc < 0) {
-		current_utc += 24;
-		current_utc_hour += 24;
-		current_utc_day -= 1;
-	}
-	while (current_utc >= 24) {
-		current_utc -= 24;
-		current_utc_hour -= 24;
-		current_utc_day += 1;
-	}
-
-	// Computes the Julian Days since 2000
-	// TODO What happens to this, if current_utc gets modified by one of the loops above? day() would stay the same
-	double jul_days_s2k = current_utc / 24.0 + days_to_beginning_of_month(year(), month()) + current_utc_day + days_since_j2k(year());
-	// END TIMEKEEPING
-
-	// number of Julian centuaries since Jan 1, 2000, 12 UT
-	const double jul_centuaries = jul_days_s2k / 36525.;
-
-	// calculate the local sidereal time (in degrees)
-	double local_sidereal_time = 100.46061837 + (15. * 0.06570982441908) * jul_days_s2k + degrees_longitude + (15. * 1.00273790935) * current_utc + (15. * 0.000026 * jul_centuaries * jul_centuaries);
-
-	// Ensure that local_sidereal_time is greater than 0 degrees
-	while (local_sidereal_time < 0.) {
-		local_sidereal_time += 360.;
-	}
-	while (local_sidereal_time >= 360.) {
-		local_sidereal_time -= 360.;
-	}
-
-	return local_sidereal_time;
-}
-
+// The current local sidereal time at the specified longitude and the current time
+// Simply said, it's the right ascension of the point in the sky directly above the observer
+// More information and an explanation of the algorithm can be found at: http://www.astro.sunysb.edu/fwalter/AST443/times.html
 double get_local_sidereal_time(const double degrees_longitude) {
+	const unsigned long day_seconds = hour() * 3600UL + minute() * 60 + second();
+	const unsigned long timestamp = now();
 
-	const double dayOffset = (now() - 946728000L) / 86400.0;
-	const double LST = (100.46 + 0.985647 * dayOffset + degrees_longitude + 15 * (hour() + minute() / 60.0 + second() / 3600.0) + 360.0);
-	const long LLST = (long)LST;
+	const double julian_day = timestamp / 86400.0;
+	const double T = (julian_day - 10957.5) / 36525.0;
+	const double G0 = 24110.548 + (8640184.812866 * T) + (0.93104 * T * T) - (0.0000062 * T * T * T);
+	const double a = day_seconds * 1.00273790934;
 
-	return (LLST % 360) + (LST - LLST);
+	const double GST = fmod((((G0 + a) / 3600.0) + 9600), 24);
 
-	//return get_local_sidereal_time2(degrees_longitude);
-}
-
-/*
- * The hour angle is the difference between the local sidereal timeand the right ascension in degrees of the target object
- */
-double get_hour_angle(const double local_sidereal_time, const double degrees_right_ascension) {
-	// This is the return value
-	double hour_angle = local_sidereal_time - degrees_right_ascension + 360.0;
-	// ...but we need to ensure that it's greater than 0
-	while (hour_angle < 0.0) {
-		hour_angle += 360.0; // Maybe this is buggy
-	}
-	while (hour_angle >= 360.0) {
-		hour_angle -= 360.0; // Maybe this is buggy
-	}
-
-	return hour_angle;
+	return GST - (degrees_longitude / 15.);
 }

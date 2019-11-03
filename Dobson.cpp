@@ -1,10 +1,3 @@
-/*
- * Dobson.cpp
- *
- *  Created on: 27.08.2019
- *      Author: lukas
- */
-
 #include <AccelStepper.h>
 #include <FuGPS.h>
 #include <Time.h>
@@ -14,8 +7,7 @@
 
 #include "./Dobson.h"
 
-int createdNrs = 0;
-
+// Adds or subtracts 360 from a value until: 0<=value<360
 void clamp360(double &value) {
 	while (value < 0.0) {
 		value += 360;
@@ -24,6 +16,7 @@ void clamp360(double &value) {
 		value -= 360;
 	}
 }
+// Adds or subtracts 360 from a value until: -360<=value<360
 void nclamp360(double& value) {
 	while (value <= -360.0) {
 		value += 360;
@@ -33,77 +26,73 @@ void nclamp360(double& value) {
 	}
 }
 
+
 Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps) :
 		_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _gps(gps) {
-	createdNrs += 1;
 }
 
 void Dobson::initialize() {
 	setMode(Mode::TRACKING);
-	setTarget({ 36, 36 });
-	
-	//setTarget({ 0,0 });//250.43, 36.47 });
+	setTarget({
+		250.425, //15. * (22. + (59.8 / 60.)),
+		36.466667//42. + (43. / 60.)
+	});
+	calculateMotorTargets();
 }
 
-// Calculate new motor targets. This does not yet execute the move
+/*
+ * Calculates motor target angles by converting from Right Ascension and Declination to Azimuth and Altitude.
+ * No movement of the motors is performed in this method (see Dobson::move() for that part)
+ * The basic formulas are as follows:
+ * Altitude = asin( sin(dec) * sin(lat) + cos(dec) * cos(lat) * cos(HourAngle) )
+ * Azimuth  = acos( (sin(dec) - sin(lat) * sin(alt)) / (cos(lat) * cos(Altitude)) )
+ * If sin(HourAngle) > 0 then Azimuth = 360 - Azimuth
+ */
 void Dobson::calculateMotorTargets() {
-	const float longitude = radians(_gpsPosition.longitude);
-	const float latitude = radians(_gpsPosition.latitude);
+	// TEMP
+	//setTime(17, 0, 0, 10, 8, 1998);
+	const float tmpLatitude = 50.5;
+	const float tmpLongitude = -1.9166667;
+	// END TEMP
 
-	const float sinLongitude = sin(longitude);
-	const float sinLatitude = sin(latitude);
-	const float cosLatitude = cos(latitude);
+	_currentLocalSiderealTime = get_local_sidereal_time(tmpLongitude); //_gpsPosition.longitude);
 
-	// Get the local sidereal time and store it in a private value (it gets referenced by the azAltToRaDec method)
-	_currentLocalSiderealTime = get_local_sidereal_time(degrees(longitude));
-	
-	// The hour angle is the difference between the local sidereal timeand the right ascension in degrees of the target object.
-	const double RadHourAngle = radians(get_hour_angle(_currentLocalSiderealTime, _target.rightAscension));
+	const double HA = _currentLocalSiderealTime - _target.rightAscension;
 
-	_targetHourAngle = RadHourAngle;
+	const double Altitude = degrees(asin( sin(radians(_target.declination)) * sin(radians(tmpLatitude)) + cos(radians(_target.declination)) * cos(radians(tmpLatitude)) * cos(radians(HA)) ));
+	const double A = degrees(acos((sin(radians(_target.declination)) - sin(radians(tmpLatitude)) * sin(radians(Altitude))) / (cos(radians(tmpLatitude)) * cos(radians(Altitude)))));
 
-	const double declination = radians(_target.declination);
-	
+	double Azimuth = sin(radians(HA)) > 0 ? 360. - A : A;
+	clamp360(Azimuth);
 
-	//double targetAltitudeDegrees = degrees(asin( SinTargetDeclination * SinGpsLatitude + CosTargetDeclination * CosGpsLatitude * CosHourAngle ));
-	const double sinAltitude = sin(declination) * sinLatitude + cos(declination) * cosLatitude * cos(RadHourAngle);
-	const double radAltitude = asin(sinAltitude);
-	double targetAltitudeDegrees = degrees(radAltitude);
-
-	const double cosAzimuth = (sin(declination) - sinLatitude * sinAltitude) / (cosLatitude * cos(radAltitude));
-	const double radAzimuth = acos(cosAzimuth);
-	double targetAzimuthDegrees = degrees(radAzimuth);
-
-	//nclamp360(targetAltitudeDegrees);
-	//nclamp360(targetAzimuthDegrees);
-	if (sin(RadHourAngle) > 0) {
-		targetAzimuthDegrees = 360 - targetAzimuthDegrees;
-	}
-
-	_targetRad = {
-		radians(targetAzimuthDegrees),
-		radAltitude
-	};
-
-	_targetDegrees = {
-		targetAzimuthDegrees, // Azimuth
-		targetAltitudeDegrees // Altitude
-	};
+	_targetDegrees = { Azimuth, Altitude };
 
 	_steppersTarget = {
-		static_cast<long>((targetAzimuthDegrees / 360.0)  * (long double)AZ_STEPS_PER_REV), // Azimuth
-		static_cast<long>((targetAltitudeDegrees / 360.0) * (long double)ALT_STEPS_PER_REV) // Altitude
+		(long)(Azimuth * AZ_STEPS_PER_DEG),
+		(long)(Altitude * ALT_STEPS_PER_DEG)
 	};
 
-	// Calculate and store the current position
+	if (_steppersTarget.azimuth != _steppersLastTarget.azimuth
+		|| _steppersTarget.altitude != _steppersLastTarget.altitude) {
+		// Indicate that the motor targets have changed from the last time this was called
+		// move() then uses the difference between _steppersTarget and _steppersLastTarget
+		// for debug outputs. The value of _steppersLastTarget is then set to _steppersTarget, so that the comparison
+		// can be done again the next time calculateMotorTargets() is called
+		_didMove = true;
+	}
+	else {
+		_didMove = false;
+	}
+
+	// Azimuth / Altitude to RightAscension / Declination and store the result
 	_currentPosition = azAltToRaDec({
-		(_azimuthStepper.currentPosition() / ((long double)AZ_STEPS_PER_REV)) * 360.0,
-		(_altitudeStepper.currentPosition() / ((long double)ALT_STEPS_PER_REV)) * 360.0
+		_azimuthStepper.currentPosition() / AZ_STEPS_PER_DEG,
+		_altitudeStepper.currentPosition() / ALT_STEPS_PER_DEG
 	});
 
-#ifdef DEBUG
-	_lastCalcMicros = micros();
-#endif
+	#ifdef DEBUG_TIMING
+		_lastCalcMicros = micros();
+	#endif
 }
 
 
@@ -113,17 +102,8 @@ void Dobson::calculateMotorTargets() {
  * The next time the method gets called, _isHomed is true , and the stepper motors are actually moved to their new required position.
  */
 void Dobson::move() {
-	if ((micros() < 5000)) {
-		DEBUG_PRINTLN("Ignore move for first 5 seconds");
-		return;
-	}
-
-	//double currentAzimuthDeg  = (_azimuthStepper.currentPosition() / (double)AZ_STEPS_PER_REV) * 360.0;
-	//double currentAltitudeDeg = (_altitudeStepper.currentPosition() / (double)ALT_STEPS_PER_REV) * 360.0;
-	//double currentAzimuthDeg  = (_steppersTarget.azimuth / (double)AZ_STEPS_PER_REV) * 360.0;
-	//double currentAltitudeDeg = (_steppersTarget.altitude / (double)ALT_STEPS_PER_REV) * 360.0;
-
-	if (false){//_ignoreMoves || !_isHomed) {
+		// TODO Finally find a relaible way to start the scope. 
+	if (millis() < 3000) {//_ignoreMoves || !_isHomed) {
 		// If not homed, or if homing was performed in this loop iteration just
 		// set the current stepper position to the current target position without moving them
 		_azimuthStepper.setCurrentPosition(_steppersTarget.azimuth);
@@ -131,16 +111,11 @@ void Dobson::move() {
 
 		// Store where the motors targeted before this operation, in case we need to move back to the original position.
 		_steppersHomed = { _steppersTarget.azimuth, _steppersTarget.altitude };
-		// Store the last target for later comparisons.
+		// Set the last position to the current one, because there is no actual previous target
 		_steppersLastTarget = { _steppersTarget.azimuth, _steppersTarget.altitude };
 
 		// Homing was performed in this iteration. In the next loop iteration this value can be used, but then it gets set to false again
 		_ignoredMoveLastIteration = true;
-
-		/*DEBUG_PRINT("Stepper pos to Az / Alt ");
-		DEBUG_PRINT(_steppersTarget.azimuth);
-		DEBUG_PRINT(" / ");
-		DEBUG_PRINTLN(_steppersTarget.altitude);*/
 	} else {
 		_ignoredMoveLastIteration = false;
 		// Move the steppers to their target positions
@@ -148,235 +123,173 @@ void Dobson::move() {
 		_altitudeStepper.moveTo(_steppersTarget.altitude);
 	}
 
-	// These store the difference between the last motor target and the current one and only serve debug purposes for now
-	long diffAz = 0;
-	long diffAlt = 0;
-
-	// If a move was performed, store the last target value and set _didMove to true to indicate that a move took place this loop iteration
-	if (_steppersLastTarget.azimuth - _steppersTarget.azimuth != 0.0
-			|| _steppersLastTarget.altitude - _steppersTarget.altitude != 0.0) {
-		// A move was performed
-		_didMove = true;
+	// Has the motor position changed since the last time move() was called? If so,
+	// store the current target value
+	if (_didMove) {
 
 		// Difference between the last target and the current one
-		diffAz = _steppersTarget.azimuth - _steppersLastTarget.azimuth;
-		diffAlt = _steppersTarget.altitude - _steppersLastTarget.altitude;
+		debugMove(
+			_steppersTarget.azimuth - _steppersLastTarget.azimuth,
+			_steppersTarget.altitude - _steppersLastTarget.altitude
+		);
 
-		// Store the last target
-		_steppersLastTarget.azimuth = _steppersTarget.azimuth;
-		_steppersLastTarget.altitude = _steppersTarget.altitude;
-	} else {
-		// No move was performed
-		_didMove = false;
+		// Store the current position
+		_steppersLastTarget = _steppersTarget;
 	}
-	_didMove = true;
-	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE
-		if (_didMove) {
-			DEBUG_PRINT_V(
-				_gps.hasFix() ?
-				"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
-				+ String(_gps.Latitude, 6) + "LAT / " + String(_gps.Longitude, 6) + "LNG" :
-				"GPS: N/A");
-			DEBUG_PRINT("; LAT ");
-			DEBUG_PRINT(_gpsPosition.latitude);
-			DEBUG_PRINT(", LNG ");
-			DEBUG_PRINT(_gpsPosition.longitude);
-			DEBUG_PRINT(", TelescopeObjects: ");
-			DEBUG_PRINT(createdNrs);
-			DEBUG_PRINT("; RA ");
-			DEBUG_PRINT(_target.rightAscension);
-			DEBUG_PRINT(" and DEC ");
-			DEBUG_PRINT(_target.declination);
-			DEBUG_PRINT(" to ALTAZ is: ");
-			DEBUG_PRINT(_targetDegrees.altitude);
-			DEBUG_PRINT("° / ");
-			DEBUG_PRINT(_targetDegrees.azimuth);
-			DEBUG_PRINT("°; The time is: ");
-			DEBUG_PRINT(day());
-			DEBUG_PRINT(".");
-			DEBUG_PRINT(month());
-			DEBUG_PRINT(".");
-			DEBUG_PRINT(year());
-			DEBUG_PRINT(" at ");
-			DEBUG_PRINT(hour());
-			DEBUG_PRINT(":");
-			DEBUG_PRINT(minute());
-			DEBUG_PRINT(":");
-			DEBUG_PRINT(second());
-			DEBUG_PRINT("Steppers: az");
-			DEBUG_PRINT(_steppersTarget.azimuth);
-			DEBUG_PRINT("/dec ");
-			DEBUG_PRINT(_steppersTarget.altitude);
-			DEBUG_PRINT(" diff ");
-			DEBUG_PRINT(diffAz);
-			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(diffAlt);
-			DEBUG_PRINT("°; Reported: az");
-			DEBUG_PRINT(_azimuthStepper.currentPosition());
-			DEBUG_PRINT("/dec ");
-			DEBUG_PRINT(_altitudeStepper.currentPosition());
-		}
-	#elif defined DEBUG_SERIAL_STEPPER_MOVEMENT
-		if (_didMove) {
-			DEBUG_PRINTLN("-------------------------------------------------------------------------------------------------------------------");
-			DEBUG_PRINT("Desired:     ");
-			DEBUG_PRINT("LST ");
-			DEBUG_PRINT(_currentLocalSiderealTime);
-
-			DEBUG_PRINT("   Ra/Dec ");
-			DEBUG_PRINT(_target.rightAscension);
-			DEBUG_PRINT("° / ");
-			DEBUG_PRINT(_target.declination);
-			DEBUG_PRINT("°");
-
-			const double degHourAngle = _targetHourAngle / 15;
-			const int hrs = static_cast<int>(degHourAngle);
-			const int mins = static_cast<int>((degHourAngle - hrs) * 60);
-			const int secs = static_cast<int>((degHourAngle - (hrs + mins / 60.)) * 3600);
-			DEBUG_PRINT("   HourAngle ");
-			DEBUG_PRINT(hrs); DEBUG_PRINT(":"); DEBUG_PRINT(mins); DEBUG_PRINT(":"); DEBUG_PRINT(secs);
-			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(_targetHourAngle);
-
-			DEBUG_PRINT("   Az/Alt ");
-			DEBUG_PRINT(_targetDegrees.azimuth);
-			DEBUG_PRINT("° / ");
-			DEBUG_PRINT(_targetDegrees.altitude);
-			DEBUG_PRINT("°");
-
-			DEBUG_PRINT("   Steps Az/Alt ");
-			DEBUG_PRINT((long)_steppersTarget.azimuth);
-			DEBUG_PRINT("° / ");
-			DEBUG_PRINT((long)_steppersTarget.altitude);
-			DEBUG_PRINT("°");
-
-			DEBUG_PRINT("   Time: ");
-			DEBUG_PRINT(day()); DEBUG_PRINT("."); DEBUG_PRINT(month()); DEBUG_PRINT("."); DEBUG_PRINT(year());
-			DEBUG_PRINT(" at ");
-			DEBUG_PRINT(hour()); DEBUG_PRINT(":"); DEBUG_PRINT(minute()); DEBUG_PRINT(":"); DEBUG_PRINT(second());
-			DEBUG_PRINT("hrs");
-
-			#ifndef DEBUG_SERIAL_TIMING
-				DEBUG_PRINTLN("");
-			#endif
-
-			/*DEBUG_PRINT("   Steps Az/Alt ");
-			DEBUG_PRINT(_steppersTarget.azimuth);
-			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(_steppersTarget.altitude);
-
-			DEBUG_PRINT("   Diff Az/Alt ");
-			DEBUG_PRINT(diffAz);
-			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(diffAlt);*/
-		}
-	#endif
 }
 
 
 /*
  * This method calculates the position in RA/DEC, based on the position given in the parameter "position"
  * The values in the "position" parameter are expected to be in degrees
+ * Declination = asin( sin(alt) * sin(lat) + cos(alt) * cos(lat) * cos(az) )
+ * HourAngle = acos( (sin(alt) - sin(lat) * sin(dec)) / (cos(lat) * cos(dec)) )
+ * If sin(az) > 0 then HourAngle = 360 - HourAngle
+ * RightAscension = LST - HourAngle
  */
-RaDecPosition Dobson::azAltToRaDec(AzAltPosition position) {
-	const double radAzimuth = radians(position.azimuth);
-	const double radAltitude = radians(position.altitude);
+RaDecPosition Dobson::azAltToRaDec(AzAlt<double> position) {
+	const double tmpLatitude = 50.5;
+	const double latitude = radians(tmpLatitude);                  //radians(_gpsPosition.latitude);
 
-	const float longitude = radians(_gpsPosition.longitude);
-	const float latitude = radians(_gpsPosition.latitude);
+	const double sinLAT = sin(latitude);
+	const double cosLAT = cos(latitude);
 
-	const float sinLongitude = sin(longitude);
-	const float sinLatitude = sin(latitude);
-	const float cosLatitude = cos(latitude);
-
-	const double calcSinDeclination = cos(radAzimuth) * cosLatitude * cos(radAltitude) + sinLatitude * sin(radAltitude);
-	const double calcDeclination = asin(calcSinDeclination);
-
-
-	const double cosRadHourAngle = (sin(radAltitude) - calcSinDeclination * sinLatitude) / (cos(calcDeclination) * cosLatitude);
-	const double radHourAngle = acos(cosRadHourAngle);
-	const double HourAngle = degrees(_targetHourAngle);
-
-	//double radHourAngle = acos((sin(radAltitude) - sin(calcDeclination) * sinLatitude) / (cos(calcDeclination) * cosLatitude));
-
-	//double HourAngle = degrees(radHourAngle);
 	
+	const double radAZ = radians(position.azimuth);
+	const double radALT = radians(position.altitude);
+
+	const double cosAZ = cos(radAZ);
+	const double sinAZ = sin(radAZ);
+
+	const double cosALT = cos(radALT);
+	const double sinALT = sin(radALT);
+
+	const double sinDEC = sinALT * sinLAT + cosALT * cosLAT * cosAZ;
+	const double radDEC = asin(sinDEC);
+	const double Declination = degrees(radDEC);
+	
+	const double ha1 = degrees(acos(((sinALT - sinLAT * sinDEC) / (cosLAT * cos(radDEC)))));
+	const double HourAngle = sinAZ > 0 ? 360. - ha1 : ha1;
+
 	double RightAscension = _currentLocalSiderealTime - HourAngle;
-	double Declination = degrees(calcDeclination);
-
-
-	_calculatedHourAngle = radHourAngle;
-	_calculatedRad = {
-		radians(RightAscension),
-		calcDeclination
-	};
-
-
-	//sin(Altitude) = sin(declination) * sin(latitude) + cos(declination) * cos(latitude) * cos(HourAngle);
-	/*
-	double Declination = asin((cos(Azimuth) * cos(latitude) * cos(Altitude)) + (sin(latitude) * sin(Altitude)));
-
-	double HourAngle = acos((sin(Altitude) - sin(Declination) * sin(latitude)) / (cos(Declination) * cos(latitude)));
+	clamp360(RightAscension);
 	
-	Declination = degrees(Declination);
-	HourAngle = degrees(HourAngle);*/
-
-	//cos(Azimuth) = (sin(declination) - (sin(latitude) * sin(Altitude))) / (cos(latitude) * cos(Altitude));
-
-	// Declination is kept in radians for now, but will be converted to degrees a few lines below
-	/*double Declination = asin(sin(radians(position.altitude)) * sin(radians((double)(_gpsPosition.latitude))) + cos(radians(position.altitude)) * cos(radians((double)(_gpsPosition.latitude))) * cos(radians(position.azimuth)));
-	
-	// Hour angle in degrees
-	//double HourAngle = degrees(asin(((0.0-sin(radians(position.azimuth))) * cos(radians(position.altitude))) / cos(Declination)));
-	double HourAngle = (sin(radians(position.altitude)) - (sin(Declination) * sin(radians((double)(_gpsPosition.latitude))))) / (cos(Declination) *  cos(radians((double)(_gpsPosition.latitude))));*/
-
-	// Convert Declination to degrees, since it's not needed in radians anymore
-	//Declination = degrees(Declination);
-
-	// The resulting Right Ascension is LST - HA
-
-	// Ensure that RightAscension and Declination are between 0 and 360
-	//clamp360(RightAscension);
-	//nclamp360(Declination);
-
-	// From here on only debug outputs happen in this method
-	#ifdef DEBUG_SERIAL_POSITION_CALC
-		if (_didMove) {
-			DEBUG_PRINT("Calculated:  ");
-			DEBUG_PRINT("LST ");
-			DEBUG_PRINT(_currentLocalSiderealTime);
-
-			DEBUG_PRINT("   Ra/Dec ");
-			DEBUG_PRINT(RightAscension);
-			DEBUG_PRINT("° / ");
-			DEBUG_PRINT(Declination);
-			DEBUG_PRINT("°");
-
-			const double degHourAngle = _calculatedHourAngle / 15.;
-			const int hrs = static_cast<int>(degHourAngle);
-			const int mins = static_cast<int>((degHourAngle - hrs) * 60);
-			const int secs = static_cast<int>((degHourAngle - (hrs + mins / 60.)) * 3600.);
-			DEBUG_PRINT("   HourAngle ");
-			DEBUG_PRINT(hrs); DEBUG_PRINT(":"); DEBUG_PRINT(mins); DEBUG_PRINT(":"); DEBUG_PRINT(secs);
-			DEBUG_PRINT(" / ");
-			DEBUG_PRINT(radHourAngle);
-
-			DEBUG_PRINT("   Az/Alt ");
-			DEBUG_PRINT(position.azimuth);
-			DEBUG_PRINT(" °/ ");
-			DEBUG_PRINT(position.altitude);
-			DEBUG_PRINT("°");
-
-			DEBUG_PRINT("   Steps Az/Alt ");
-			DEBUG_PRINT(_azimuthStepper.currentPosition());
-			DEBUG_PRINT("° / ");
-			DEBUG_PRINT(_altitudeStepper.currentPosition());
-			DEBUG_PRINTLN("°");
-		}
-	#endif
-
 	return {
 		RightAscension,
 		Declination
 	};
+}
+
+
+/*
+ * This jsut prints various debug statements so that they do not have to happen in calculateMotorTargets(), move(), and azAltToRaDec()
+*/
+void Dobson::debugMove(long diffAz, long diffAlt) {
+
+	// Debug statements by calculateMotorTargets()
+	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE
+		DEBUG_PRINT_V(
+			_gps.hasFix() ?
+			"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
+			+ String(_gps.Latitude, 6) + "LAT / " + String(_gps.Longitude, 6) + "LNG" :
+			"GPS: N/A");
+		DEBUG_PRINT("; LAT ");
+		DEBUG_PRINT(_gpsPosition.latitude);
+		DEBUG_PRINT(", LNG ");
+		DEBUG_PRINT(_gpsPosition.longitude);
+		DEBUG_PRINT(", TelescopeObjects: ");
+		DEBUG_PRINT(createdNrs);
+		DEBUG_PRINT("; RA ");
+		DEBUG_PRINT(_target.rightAscension);
+		DEBUG_PRINT(" and DEC ");
+		DEBUG_PRINT(_target.declination);
+		DEBUG_PRINT(" to ALTAZ is: ");
+		DEBUG_PRINT(_targetDegrees.altitude);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT(_targetDegrees.azimuth);
+		DEBUG_PRINT("°; The time is: ");
+		DEBUG_PRINT(day());
+		DEBUG_PRINT(".");
+		DEBUG_PRINT(month());
+		DEBUG_PRINT(".");
+		DEBUG_PRINT(year());
+		DEBUG_PRINT(" at ");
+		DEBUG_PRINT(hour());
+		DEBUG_PRINT(":");
+		DEBUG_PRINT(minute());
+		DEBUG_PRINT(":");
+		DEBUG_PRINT(second());
+		DEBUG_PRINT("Steppers: az");
+		DEBUG_PRINT(_steppersTarget.azimuth);
+		DEBUG_PRINT("/dec ");
+		DEBUG_PRINT(_steppersTarget.altitude);
+		DEBUG_PRINT(" diff ");
+		DEBUG_PRINT(diffAz);
+		DEBUG_PRINT(" / ");
+		DEBUG_PRINT(diffAlt);
+		DEBUG_PRINT("°; Reported: az");
+		DEBUG_PRINT(_azimuthStepper.currentPosition());
+		DEBUG_PRINT("/dec ");
+		DEBUG_PRINT(_altitudeStepper.currentPosition());
+	#elif defined DEBUG_SERIAL_STEPPER_MOVEMENT
+		DEBUG_PRINTLN("-------------------------------------------------------------------------------------------------------------------");
+		DEBUG_PRINT("Desired:     ");
+
+		DEBUG_PRINT("   Ra/Dec ");
+		DEBUG_PRINT(_target.rightAscension);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT(_target.declination);
+		DEBUG_PRINT("°");
+
+		DEBUG_PRINT("   Az/Alt ");
+		DEBUG_PRINT(_targetDegrees.azimuth);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT(_targetDegrees.altitude);
+		DEBUG_PRINT("°");
+
+		DEBUG_PRINT("   Steps Az/Alt ");
+		DEBUG_PRINT((long)_steppersTarget.azimuth);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT((long)_steppersTarget.altitude);
+		DEBUG_PRINT("°");
+
+		DEBUG_PRINT("   Time: ");
+		DEBUG_PRINT(day()); DEBUG_PRINT("."); DEBUG_PRINT(month()); DEBUG_PRINT("."); DEBUG_PRINT(year());
+		DEBUG_PRINT(" at ");
+		DEBUG_PRINT(hour()); DEBUG_PRINT(":"); DEBUG_PRINT(minute()); DEBUG_PRINT(":"); DEBUG_PRINT(second());
+		DEBUG_PRINT("hrs");
+
+		DEBUG_PRINT("   LST ");
+		DEBUG_PRINT(_currentLocalSiderealTime);
+
+		#ifndef DEBUG_TIMING
+			DEBUG_PRINTLN("");
+		#endif
+	#endif // End statements by calculateMotorTargets()
+
+	// Debug statements by move()
+
+	// End statements by move()
+
+
+	// Debug statements by azAltToRaDec()
+
+
+	// From here on only debug outputs happen in this method
+	#ifdef DEBUG_SERIAL_POSITION_CALC
+		DEBUG_PRINT("Calculated:  ");
+
+		DEBUG_PRINT("   Ra/Dec ");
+		DEBUG_PRINT(_currentPosition.rightAscension);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT(_currentPosition.declination);
+		DEBUG_PRINT("°");
+
+		DEBUG_PRINT("   Az/Alt ");
+		DEBUG_PRINT(_azimuthStepper.currentPosition() / AZ_STEPS_PER_DEG);
+		DEBUG_PRINT("° / ");
+		DEBUG_PRINT(_altitudeStepper.currentPosition() / ALT_STEPS_PER_DEG);
+		DEBUG_PRINTLN("°");
+	#endif
+	// End statements by azAltToRaDec()
 }

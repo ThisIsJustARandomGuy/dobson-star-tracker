@@ -11,12 +11,11 @@
 
 #include "./Mount.h"
 #include "./location.h"
-#include "./Dobson.h"
 
 
-class Dobson: public Mount {
+class DirectDrive : public Mount {
 public:
-	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps);
+	DirectDrive(AccelStepper& azimuthStepper, AccelStepper& altitudeStepper, FuGPS& gps);
 
 	// This runs at the very end of the Arduino setup() function and sets the operating mode and initial target
 	void initialize();
@@ -25,48 +24,32 @@ public:
 	// This does not yet update the stepper motor targets, but stores them in the protected member variable _steppersTarget
 	// It also calls the azAltToRaDec() method with the current stepper position and stores the result
 	void calculateMotorTargets();
-	
-	// Calculates the current position in Ra/Dec, which is reported back to Stellarium or other connected tools
-	RaDecPosition azAltToRaDec(AzAlt<double> position);
 
 	// Sets the actual motor targets, based on the contents of _steppersTarget
 	void move();
 
-	// It is set to true at the end of the move() method, if at least one stepper target was changed
+	// This is set to true at the end of the move() method, if at least one stepper target was changed
 	// It is then reset at the beginning of calculateMotorTargets()
 	bool _didMove = false;
 
-#ifdef DEBUG_TIMING
-	// How long calculateMotorTargets took to execute (including azAltToRaDec())
-	long _lastCalcMicros = 0;
-#endif
+	#ifdef DEBUG_TIMING
+		// How long calculateMotorTargets took to execute
+		long _lastCalcMicros = 0;
+	#endif
 
 protected:
 	// Reference to the azimuth stepper
-	AccelStepper &_azimuthStepper;
-	
+	AccelStepper& _azimuthStepper;
+
 	// Reference to the altitude stepper
-	AccelStepper &_altitudeStepper;
+	AccelStepper& _altitudeStepper;
 
 	// Reference to the GPS module
-	FuGPS &_gps;
-
-	// Stores the current local sidereal time
-	// This is written to (and used) by calculateMotorTargets() and just used by azAltToRaDec()
-	double _currentLocalSiderealTime;
-
-	// Target position in degrees
-	AzAlt<double> _targetDegrees;
-
-	// The position of the steppers when homing was performed (in steps).
-	AzAlt<long> _steppersHomed;
+	FuGPS& _gps;
 
 	// Current stepper target position for the steppers (in steps). It is written to at the end of calculateMotorTargets()
 	AzAlt<long> _steppersTarget;
 
-	// Target position for the steppers before the last move (in steps). It is written to at the end of move()
+	// Target position for the steppers before the last move. It is written to at the end of move()
 	AzAlt<long> _steppersLastTarget;
-
-	// Outputs various debug statements
-	void debugMove(long diffAz, long diffAlt);
 };
