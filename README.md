@@ -1,10 +1,6 @@
 # dobson-star-tracker
 This project aims to enable makers to motorize their dobson-style mounted telescopes using easily sourced hardware.
 
-## Warning
-
-As of now (25.10.), the conversion between the two coordinate systems (Alt/Az and Ra/Dec) is still broken. I am working on fixing it, but it is taking longer than expected. Maybe someone could weigh in (the code can be found in Dobson.cpp in the methods calculateMotorTargets() and azAltToRaDec()) or even provide a PR. I am currently controlling the two axes directly using a 3D printer screen + encoder (the commonly used 128x64 LCD module) with its own Arduino Nano. Code and instructions for the screen will be provided as a separate repository within the next few days. At the same time I will also push changes to this repository to work with the screen. There will be a config setting to change between multiple kinematics (currently Dobson and Direct Motor Control).
-
 ## Hardware
 
 + 2 Stepper Motors + drivers. I found that the size of my telescope (as pictured badly below) requires at least NEMA 17 with 1.2A current per phase. The altitude motor uses a (roughly) 5:1 gear ratio
@@ -16,7 +12,6 @@ As of now (25.10.), the conversion between the two coordinate systems (Alt/Az an
 ## 3D Files
 
 The printable files (stl and step format) can be found at: https://www.thingiverse.com/thing:3851307
-
 
 
 ## Serial Commands
@@ -35,6 +30,7 @@ The printable files (stl and step format) can be found at: https://www.thingiver
   + :STP0# Disable steppers permanently
   + :STP1# Enable steppers (after they were disabled using the STP0 command)
 + Debug commands
+  + :DBGDSP# Send a status update to the display unit
   + :DBGDM[00-99]# Disable Motors for XX seconds
   + :DBGM[0-9]# Move to debug position X (see conversion.cpp; Later we will have a separate file with a star catalogue)
   + :DBGMIA# Increase Right Ascension by 1 degree
