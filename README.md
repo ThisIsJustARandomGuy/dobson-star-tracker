@@ -26,7 +26,7 @@ Setup should be pretty easy. Just open the dobson-star-tracker.ino file in the A
 
 ## Wiring with the Display Unit
 
-My example uses a version of the well-known [RepRap Discount Full Graphics Smart Controller](https://reprap.org/wiki/RepRapDiscount_Full_Graphic_Smart_Controller). The only connection between the two Arduino boards is via the two cables connected to RX2 and TX2 on the Display Unit. For more information + code for the display unit head over to [currently preparing the repository].
+My example uses a version of the well-known [RepRap Discount Full Graphics Smart Controller](https://reprap.org/wiki/RepRapDiscount_Full_Graphic_Smart_Controller). The only connection between the two Arduino boards is via the two cables connected to RX2 and TX2 on the Display Unit. For more information + code for the display unit head over to [ThisIsJustARandomGuy/telescope-display-unit/](https://github.com/ThisIsJustARandomGuy/telescope-display-unit/).
 
 ![Wiring without the display unit](docs/img/Wiring_With_Display.png)
 
