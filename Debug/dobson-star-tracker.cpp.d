@@ -1,0 +1,29 @@
+C:\Users\lukas\AppData\Local\Temp\VMBuilds\dobson-star-tracker\mega_atmega2560\Debug\dobson-star-tracker.cpp.o: \
+ C:\Users\lukas\AppData\Local\Temp\VMBuilds\dobson-star-tracker\mega_atmega2560\Debug\dobson-star-tracker.cpp \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/arduino.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/binary.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/WCharacter.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/WString.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/HardwareSerial.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/Stream.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/Print.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/Printable.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/USBAPI.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/Arduino.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\variants\mega/pins_arduino.h \
+ C:\Users\lukas\Documents\Arduino\libraries\Time-1.5/TimeLib.h \
+ C:\Users\lukas\Documents\Arduino\libraries\AccelStepper\src/AccelStepper.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/Arduino.h \
+ C:\Users\lukas\Documents\Arduino\libraries\FuGPS_Library\src/FuGPS.h \
+ C:\Users\lukas\AppData\Local\arduino15\packages\arduino\hardware\avr\1.8.1\cores\arduino/HardwareSerial.h \
+ C:\Users\lukas\Documents\Arduino\libraries\AccelStepper\src/MultiStepper.h \
+ C:\Users\lukas\AppData\Local\Temp\VMBuilds\dobson-star-tracker\mega_atmega2560\Debug\config.h \
+ C:\Users\lukas\AppData\Local\Temp\VMBuilds\dobson-star-tracker\mega_atmega2560\Debug\conversion.h \
+ c:\users\lukas\appdata\local\temp\vmbuilds\dobson-star-tracker\mega_atmega2560\debug\mount.h \
+ c:\users\lukas\appdata\local\temp\vmbuilds\dobson-star-tracker\mega_atmega2560\debug\location.h \
+ C:\Users\lukas\Documents\Arduino\libraries\TimerOne/TimerOne.h \
+ C:\Users\lukas\Documents\Arduino\libraries\TimerOne/config/known_16bit_timers.h \
+ C:\Users\lukas\AppData\Local\Temp\VMBuilds\dobson-star-tracker\mega_atmega2560\Debug\display_unit.h \
+ c:\users\lukas\appdata\local\temp\vmbuilds\dobson-star-tracker\mega_atmega2560\debug\dobson.h \
+ c:\users\lukas\appdata\local\temp\vmbuilds\dobson-star-tracker\mega_atmega2560\debug\mount.h \
+ c:\program\ files\ (x86)\microsoft\ visual\ studio\2019\community\common7\ide\extensions\ed2mmpmr.3jk\Micro\ Platforms\default\debuggers\VM_DBG/VM_DBG.h
