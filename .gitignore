@@ -5,3 +5,4 @@
 /ARM/Debug
 /.vs
 /.idea
+./Debug/**
