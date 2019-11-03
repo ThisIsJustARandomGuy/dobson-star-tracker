@@ -19,6 +19,15 @@ The printable files (stl and step format) can be found at: https://www.thingiver
 Setup should be pretty easy. Just open the dobson-star-tracker.ino file in the Arduino IDE, edit config.h to your liking. Then you just have to build and upload the sketch. Have a look at the DEBUG_* constants in config to get some output in the console. If the sketch builds and uploads, you can connect the telescope to Stellarium (guide incoming), or use the display unit (if you have one) to control the telescope.
 
 
+## Arduino Libraries
+
+* [TimerOne (on the Arduino Mega)](https://github.com/PaulStoffregen/TimerOne)
+* [DueTimer (on the Arduino Due)](https://github.com/ivanseidel/DueTimer)
+* [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/)
+* [FuGPS (currently, even if no GPS module is installed)](https://github.com/fu-hsi/FuGPS)
+* [TimeLib](https://github.com/PaulStoffregen/Time)
+
+
 ## Wiring a RAMPS1.4
 
 ![Wiring without the display unit](docs/img/Wiring_No_Display.png)
