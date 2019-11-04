@@ -16,16 +16,50 @@ The printable files (stl and step format) can be found at: https://www.thingiver
 
 ## Installation
 
-Setup should be pretty easy. Just open the dobson-star-tracker.ino file in the Arduino IDE, edit config.h to your liking. Then you just have to build and upload the sketch. Have a look at the DEBUG_* constants in config to get some output in the console. If the sketch builds and uploads, you can connect the telescope to Stellarium (guide incoming), or use the display unit (if you have one) to control the telescope.
-
-
-## Arduino Libraries
+First of all, you will need the [Arduino IDE](https://www.arduino.cc/) and a few libraries:
 
 * [TimerOne (on the Arduino Mega)](https://github.com/PaulStoffregen/TimerOne)
 * [DueTimer (on the Arduino Due)](https://github.com/ivanseidel/DueTimer)
 * [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/)
 * [FuGPS (currently, even if no GPS module is installed)](https://github.com/fu-hsi/FuGPS)
 * [TimeLib](https://github.com/PaulStoffregen/Time)
+
+Clone or download this repository and open the dobson-star-tracker.ino file in the Arduino IDE. Then you will need to set up a few constants in the config.h file. Have a look at the DEBUG_* constants in config to get some output in the console. Then just have to build and upload the sketch. If the sketch builds and uploads, you can connect the telescope to Stellarium, use the display unit (if you have one) to control the telescope or simply use the Serial Monitor.
+
+## Connection to Stellarium
+
+There are a few requisites for establishing a connection between the telescope and Stellarium.
+
+### Arduino project
+1. Set the `SERIAL_BAUDRATE` to 9600
+2. Disable all of the DEBUG constants, so that the telescope does not send invalid commands to Stellarium. If Stellarium receives an invalid answer, it will wait for a few seconds before interacting with the telescope again. This either means, that it won't receive position updates from the telescope or that it won't send your commands. Setting a new position requires three commands sent by Stellarium. If one of them receives an invalid answer, Stellarium will not send the rest of the commands and your input will basically be ignored.
+3. Close the Serial Monitor or Stellarium will not be able to connect to the telescope
+4. 
+### Settings in Stellarium
+1. Open Stellarium and locate the "Telescope" tab. It should be in the lower control bar to the left of the time controls. If you can't find it, you may need to enable the "Telescope Control" plugin and restart Stellarium. Do so in the Configuration window in the last tab.
+2. Click "Add" and set the following:
+    * **Telescope controlled by:** "Stellarium, directly through a serial port"
+    * **Name:** Choose one :)
+    * **Connection delay:** Something around 0,1s, but should not matter too much
+    * **Coordinate System:** J2000 (default)
+    * **Start/Connect at startup:** Ticking the box means that Stellarium will try to connect to the telescope as soon as you open it. Use your preference.
+    * **Serial port:** Select the same port as in your Arduino IDE
+    * **Device Model:** Meade LX200 (compatible)
+    * **Use field of view indicators:** Does not matter for controlling the telescope. Use your preference.
+3. Confirm the settings with "OK"
+4. Use "Start" to connect to the telescope
+5. Wait a few seconds for it to show up on the screen
+6. **Imporant:** I haven't figured out how I want aligning the telescope to work. For now, this will do, but please add suggestions to the issue I have opened for this.
+    1. Turn off the power supply to the steppers
+    2. Manually point the telescope at a star
+    3. Select that star in Stellarium
+    4. Click "current object" in the telescope section
+    5. Click "slew" and wait for the telescope on screen to point at the correct star
+    6. Reconnect the stepper driver power supply
+    7. The telescope will know where it is actually pointing at
+7. Select a star
+8. Click "current object" in the telescope section
+9. Click "slew" and watch the telescope move
 
 
 ## Wiring a RAMPS1.4
