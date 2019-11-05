@@ -49,18 +49,12 @@ void Dobson::initialize() {
  * If sin(HourAngle) > 0 then Azimuth = 360 - Azimuth
  */
 void Dobson::calculateMotorTargets() {
-	// TEMP
-	//setTime(17, 0, 0, 10, 8, 1998);
-	const float tmpLatitude = 50.5;
-	const float tmpLongitude = -1.9166667;
-	// END TEMP
-
-	_currentLocalSiderealTime = get_local_sidereal_time(tmpLongitude); //_gpsPosition.longitude);
+	_currentLocalSiderealTime = get_local_sidereal_time(_gps.Longitude); //_gpsPosition.longitude);
 
 	const double HA = _currentLocalSiderealTime - _target.rightAscension;
 
-	const double Altitude = degrees(asin( sin(radians(_target.declination)) * sin(radians(tmpLatitude)) + cos(radians(_target.declination)) * cos(radians(tmpLatitude)) * cos(radians(HA)) ));
-	const double A = degrees(acos((sin(radians(_target.declination)) - sin(radians(tmpLatitude)) * sin(radians(Altitude))) / (cos(radians(tmpLatitude)) * cos(radians(Altitude)))));
+	const double Altitude = degrees(asin( sin(radians(_target.declination)) * sin(radians(_gps.Latitude)) + cos(radians(_target.declination)) * cos(radians(_gps.Latitude)) * cos(radians(HA)) ));
+	const double A = degrees(acos((sin(radians(_target.declination)) - sin(radians(_gps.Latitude)) * sin(radians(Altitude))) / (cos(radians(_gps.Latitude)) * cos(radians(Altitude)))));
 
 	double Azimuth = sin(radians(HA)) > 0 ? 360. - A : A;
 	clamp360(Azimuth);
@@ -148,8 +142,7 @@ void Dobson::move() {
  * RightAscension = LST - HourAngle
  */
 RaDecPosition Dobson::azAltToRaDec(AzAlt<double> position) {
-	const double tmpLatitude = 50.5;
-	const double latitude = radians(tmpLatitude);                  //radians(_gpsPosition.latitude);
+	const double latitude = radians(_gps.Latitude);
 
 	const double sinLAT = sin(latitude);
 	const double cosLAT = cos(latitude);
