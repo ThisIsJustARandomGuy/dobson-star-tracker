@@ -11,6 +11,7 @@
 #include "./config.h"
 #include "./macros.h"
 #include "./conversion.h"
+#include "./Observer.h"
 #include "./location.h"
 
 #ifdef SERIAL_DISPLAY_ENABLED
@@ -302,7 +303,7 @@ void setDeclination(Mount &telescope) {
  * It parses the received characters and calls the required functions
  * TODO Break this up into small functions so that the code stays maintainable
  */
-bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
+bool parseCommands(Mount &telescope, Observer& observer, bool homingMode) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			// GR: Get Right Ascension
@@ -433,22 +434,8 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 				digitalWrite(ALT_ENABLE_PIN, LOW);
 				digitalWrite(AZ_ENABLE_PIN, LOW);
 			} else if (receivedChars[3] == 'G' && receivedChars[4] == 'P' && receivedChars[5] == 'S') {
-				// GPS Debug info
-				Serial.println("GPS Status: ");
-				Serial.print("Alive      ... ");
-				Serial.println(gps.isAlive() ? "Yes" : "No");
-				Serial.print("Fix        ... ");
-				Serial.println((gps.hasFix() ? "Yes" : "No"));
-				Serial.print("Satellites ... ");
-				Serial.println(String(gps.Satellites, 6));
-				Serial.print("Quality    ... ");
-				Serial.println(String(gps.Quality, 6));
-				Serial.print("Altitude   ... ");
-				Serial.println(String(gps.Altitude, 6));
-				Serial.print("Latitude   ... ");
-				Serial.println(String(gps.Latitude, 6));
-				Serial.print("Longitude  ... ");
-				Serial.println(String(gps.Longitude, 6));
+				// Observer/Gps Debug info
+				observer.printDebugInfo();
 			}
 			#ifdef SERIAL_DISPLAY_ENABLED
 				else if (receivedChars[3] == 'D' && receivedChars[4] == 'S' && receivedChars[5] == 'P') {
@@ -469,13 +456,13 @@ bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode) {
 	return false;
 }
 
-bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode) {
+bool handleSerialCommunication(Mount &telescope, Observer &observer, bool homingMode) {
 	// Receives the next command character, if available
 	receiveCommandChar();
 
 	// Once a complete command has been received, this parses and runs the command
 	// Returns true, if the received command triggered a change from Mode::HOMING to Mode::TRACKING
-	bool switchedToTracking = parseCommands(telescope, gps, homingMode);
+	bool switchedToTracking = parseCommands(telescope, observer, homingMode);
 
 	// If we have a target select button it gets handled here
 	#ifdef TARGET_SELECT_PIN

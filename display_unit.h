@@ -2,10 +2,11 @@
 
 #include "config.h"
 #include "./Mount.h"
+#include "./Observer.h"
 
 void display_statusUpdate(Mount& telescope);
 void initDisplayCommunication(Mount& telescope);
-void handleDisplayCommunication(Mount& telescope, FuGPS& gps, bool homingMode);
+void handleDisplayCommunication(Mount& telescope, Observer& observer, bool homingMode);
 
 // Status commands
 #define SERIAL_DISPLAY_CMD_STATUS_INITIALIZING "s:1"

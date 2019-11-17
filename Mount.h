@@ -4,9 +4,7 @@
  *  Created on: 28.08.2019
  *      Author: lukas
  */
-
-#ifndef MOUNTS_MOUNT_H_
-#define MOUNTS_MOUNT_H_
+#pragma once
 
 #include "./location.h"
 
@@ -54,7 +52,7 @@ public:
 
 	void setMode(Mode mode) {
 		_mode = mode;
-		DEBUG_PRINTLN("New opmode is: ");
+		DEBUG_PRINT("New opmode is: ");
 		DEBUG_PRINTLN(_mode);
 	}
 
@@ -63,10 +61,6 @@ public:
 	virtual void calculateMotorTargets();
 
 	virtual void move();
-
-	void updateGpsPosition(TelescopePosition pos) {
-		_gpsPosition = pos;
-	}
 
 	void setHomed(const bool value = true) {
 		_isHomed = value;
@@ -109,7 +103,7 @@ protected:
 	// Which mode the telescope is curently in. See above for what the constants do
 	Mode _mode = Mode::INITIALIZING;
 
-	TelescopePosition _gpsPosition;
+	ObserverPosition _gpsPosition;
 
 	bool _ignoredMoveLastIteration = false;
 	bool _isHomed = false;
@@ -120,7 +114,5 @@ protected:
 	RaDecPosition _lastTarget;
 
 	RaDecPosition _currentPosition;
-
-
 };
-#endif /* MOUNTS_MOUNT_H_ */
+

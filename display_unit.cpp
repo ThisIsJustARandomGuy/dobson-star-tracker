@@ -1,6 +1,7 @@
 #include "./config.h"
 #include "./macros.h"
 #include "./display_unit.h"
+#include "./Observer.h"
 
 boolean newDisplayData = false;
 const byte numDisplayChars = 32;
@@ -14,7 +15,6 @@ void initDisplayCommunication(Mount& telescope) {
 	SERIAL_DISPLAY_PORT.println(SERIAL_DISPLAY_CMD_STATUS_INITIALIZING);
 	// Send the used MOUNT_TYPE
 	//SERIAL_DISPLAY_PORT.println(SERIAL_DISPLAY_CMD_MOUNT_TYPE);
-	display_statusUpdate(telescope);
 }
 
 /*
@@ -129,7 +129,7 @@ void display_statusUpdate(Mount& telescope) {
  * This gets called whenever a complete command was received from the display unit
  * It parses the received characters and calls the required functions
  */
-void parseDisplayCommands(Mount& telescope, FuGPS& gps, bool homingMode) {
+void parseDisplayCommands(Mount& telescope, Observer& observer, bool homingMode) {
 	if (newDisplayData == true) {
 		if (receivedDisplayChars[0] == 's' && receivedDisplayChars[1] == '?') {
 			// s? Get the status.
@@ -148,10 +148,10 @@ void parseDisplayCommands(Mount& telescope, FuGPS& gps, bool homingMode) {
 }
 
 
-void handleDisplayCommunication(Mount& telescope, FuGPS& gps, bool homingMode) {
+void handleDisplayCommunication(Mount& telescope, Observer& observer, bool homingMode) {
 	// Receives the next command character from the display, if available
 	receiveDisplayCommandChar();
 
 	// Once a complete command has been received, this parses and runs the command
-	parseDisplayCommands(telescope, gps, homingMode);
+	parseDisplayCommands(telescope, observer, homingMode);
 }

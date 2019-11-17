@@ -11,10 +11,11 @@
 #include <FuGPS.h>
 
 #include "./Mount.h"
+#include "./Observer.h"
 #include "location.h"
 
 
 void initCommunication(Mount& telescope);
-bool parseCommands(Mount &telescope, FuGPS &gps, bool homingMode);
+bool parseCommands(Mount &telescope, Observer& observer, bool homingMode);
 void receiveCommandChar();
-bool handleSerialCommunication(Mount &telescope, FuGPS &gps, bool homingMode);
+bool handleSerialCommunication(Mount &telescope, Observer& observer, bool homingMode);

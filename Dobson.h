@@ -9,14 +9,14 @@
 #include <AccelStepper.h>
 #include <FuGPS.h>
 
-#include "./Mount.h"
 #include "./location.h"
-#include "./Dobson.h"
+#include "./Observer.h"
 
+#include "./Mount.h"
 
 class Dobson: public Mount {
 public:
-	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps);
+	Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeSteppers, Observer &observer);
 
 	// This runs at the very end of the Arduino setup() function and sets the operating mode and initial target
 	void initialize();
@@ -48,8 +48,8 @@ protected:
 	// Reference to the altitude stepper
 	AccelStepper &_altitudeStepper;
 
-	// Reference to the GPS module
-	FuGPS &_gps;
+	// Reference to the Observer (GPS/Fixed)
+	Observer &_observer;
 
 	// Stores the current local sidereal time
 	// This is written to (and used) by calculateMotorTargets() and just used by azAltToRaDec()

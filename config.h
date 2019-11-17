@@ -84,7 +84,7 @@
 //#define BUZZER_PIN      14  // Uncomment if you have a buzzer installed. Default pin for RAMPS 1.4 is Y_MIN
 //#define STEPPERS_ON_PIN    3  // Uncomment if you have a stepper switch installed. Default pin for RAMPS 1.4 is  X_MIN. If this pin is HIGH, the steppers are turned on.
 //#define HOME_NOW_PIN     3  // Uncomment if you have a homing mode switch installed. Default pin for RAMPS 1.4 is X_MAX. If this pin is HIGH, Telescope::setHomed(true) is called. Ignored when using MOUNT_TYPE_DIRECT
-#define TARGET_SELECT_PIN  2  // Debug button which cycles through a few different targets
+//#define TARGET_SELECT_PIN  2  // Debug button which cycles through a few different targets
 
 /**
  * ----------------
@@ -99,6 +99,13 @@
 
 // Uncomment the following line to enable sending debug statements via the serial port
 #define DEBUG_SERIAL
+
+// When initializing, a sanity check is performed on the constants set in config.h
+// If the sanity check fails, the telescope will output a warning.
+// If this is uncommented, the telescope will also stop and wait.
+// If DEBUG_SERIAL is enabled, the telescope will wait until the user enters a continue command.
+// If BUZZER_PIN is enabled, it will continuously beep until powered off or a continue command is received.
+#define DEBUG_STOP_ON_CONFIG_INSANITY
 
 // Uncomment to enable debug statements about how long various tasks take to execute
 //#define DEBUG_TIMING
@@ -127,21 +134,41 @@
  * ----------------
  */
 
-// This location is used while initializing the GPS module, or if no GPS module is connected.
-#define LAT 47.425011 // Observer latitude in degrees
-#define LNG 12.846258 // Observer longitude in degrees
+// This location is used while initializing the GPS module, or if no GPS module is connected (GPS_FIXED_POS)
+#define ALT 700.0     // Observer altitude in meters
+#define LAT 47.0      // Observer latitude in degrees
+#define LNG 12.0      // Observer longitude in degrees
+
+// The initial date and time that is used when GPS_FIXED_POS is enabled
+#define INITIAL_YEAR 2019
+#define INITIAL_MONTH 11
+#define INITIAL_DAY 10
+#define INITIAL_HOUR 0
+#define INITIAL_MINUTE 0
+#define INITIAL_SECOND 0
 
 // Timezone correction to convert FROM your current time to UTC. We could use GPS to get this value, but it would be difficult
 // TODO Invert this value as it is confusing to have to set a negative X for the timezone UTC+X
-// -2
 #define TIMEZONE_CORRECTION_H (-1)
 
 // Updates from the GPS module are ignored if you uncomment the next line
-// TODO Does not work currently
 #define GPS_FIXED_POS
 
 // Serial 1 TX on Arduino is connected to RX on the GPS module. Z_MIN on the RAMPS shield
 #define GPS_SERIAL_PORT Serial1
+
+// Uncomment this to have the telescope wait for a GPS fix before moving
+// TODO Does not work currently
+//#define GPS_WAIT_FOR_FIX
+
+// Set the minimum number of GPS satellites to consider enough for returning the position
+#define GPS_MIN_SATELLITES 3
+
+// Set the minimum number of GPS satellites to consider enough for returning the time. Comment out to use GPS_MIN_SATELLITES
+#define GPS_MIN_SATELLITES_TIME 3
+
+// Should the telescope actually wait for the GPS fix and the min_satellites before moving?
+//#define MOUNT_STOP_UNTIL_GPS_POS_VALID
 
 // END GPS SECTION
 
@@ -151,7 +178,7 @@
  *
  * -------------------
  */
-// Update the motor positions every Xms
+// Update the motor positions (e.g. call Mount::calculateMotorTargets()) every X ms
 #define UPDATE_MOTOR_POS_MS 500
 // The stepper interrupts get called every STEPPER_INTERRUPT_FREQ microseconds.
 // 1.000.000 means the interrupt gets called every second. 1.000 means every ms

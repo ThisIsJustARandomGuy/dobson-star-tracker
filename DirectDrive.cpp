@@ -1,15 +1,15 @@
 #include <AccelStepper.h>
-#include <FuGPS.h>
 #include <Time.h>
 
 #include "./config.h"
 #include "./location.h"
+#include "./Observer.h"
 
 #include "./DirectDrive.h"
 
 
-DirectDrive::DirectDrive(AccelStepper& azimuthStepper, AccelStepper& altitudeStepper, FuGPS& gps) :
-	_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _gps(gps) {
+DirectDrive::DirectDrive(AccelStepper& azimuthStepper, AccelStepper& altitudeStepper, Observer &observer) :
+	_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _observer(observer) {
 }
 
 void DirectDrive::initialize() {

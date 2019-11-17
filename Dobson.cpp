@@ -4,6 +4,7 @@
 
 #include "./config.h"
 #include "./location.h"
+#include "./Observer.h"
 
 #include "./Dobson.h"
 
@@ -27,8 +28,8 @@ void nclamp360(double& value) {
 }
 
 
-Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, FuGPS &gps) :
-		_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _gps(gps) {
+Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, Observer &observer) :
+		_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _observer(observer) {
 }
 
 void Dobson::initialize() {
@@ -49,12 +50,14 @@ void Dobson::initialize() {
  * If sin(HourAngle) > 0 then Azimuth = 360 - Azimuth
  */
 void Dobson::calculateMotorTargets() {
-	_currentLocalSiderealTime = get_local_sidereal_time(_gps.Longitude); //_gpsPosition.longitude);
+	const float longitude = _observer.longitude();
+	const float latitude = _observer.latitude();
+	_currentLocalSiderealTime = get_local_sidereal_time(longitude);
 
 	const double HA = _currentLocalSiderealTime - _target.rightAscension;
 
-	const double Altitude = degrees(asin( sin(radians(_target.declination)) * sin(radians(_gps.Latitude)) + cos(radians(_target.declination)) * cos(radians(_gps.Latitude)) * cos(radians(HA)) ));
-	const double A = degrees(acos((sin(radians(_target.declination)) - sin(radians(_gps.Latitude)) * sin(radians(Altitude))) / (cos(radians(_gps.Latitude)) * cos(radians(Altitude)))));
+	const double Altitude = degrees(asin( sin(radians(_target.declination)) * sin(radians(latitude)) + cos(radians(_target.declination)) * cos(radians(latitude)) * cos(radians(HA)) ));
+	const double A = degrees(acos((sin(radians(_target.declination)) - sin(radians(latitude)) * sin(radians(Altitude))) / (cos(radians(latitude)) * cos(radians(Altitude)))));
 
 	double Azimuth = sin(radians(HA)) > 0 ? 360. - A : A;
 	clamp360(Azimuth);
@@ -142,7 +145,7 @@ void Dobson::move() {
  * RightAscension = LST - HourAngle
  */
 RaDecPosition Dobson::azAltToRaDec(AzAlt<double> position) {
-	const double latitude = radians(_gps.Latitude);
+	const double latitude = radians(_observer.latitude());
 
 	const double sinLAT = sin(latitude);
 	const double cosLAT = cos(latitude);

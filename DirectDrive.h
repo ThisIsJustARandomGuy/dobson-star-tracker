@@ -7,15 +7,15 @@
  */
 
 #include <AccelStepper.h>
-#include <FuGPS.h>
 
 #include "./Mount.h"
+#include "./Observer.h"
 #include "./location.h"
 
 
 class DirectDrive : public Mount {
 public:
-	DirectDrive(AccelStepper& azimuthStepper, AccelStepper& altitudeStepper, FuGPS& gps);
+	DirectDrive(AccelStepper& azimuthStepper, AccelStepper& altitudeStepper, Observer& observer);
 
 	// This runs at the very end of the Arduino setup() function and sets the operating mode and initial target
 	void initialize();
@@ -44,8 +44,8 @@ protected:
 	// Reference to the altitude stepper
 	AccelStepper& _altitudeStepper;
 
-	// Reference to the GPS module
-	FuGPS& _gps;
+	// Reference to the Observer
+	Observer& _observer;
 
 	// Current stepper target position for the steppers (in steps). It is written to at the end of calculateMotorTargets()
 	AzAlt<long> _steppersTarget;
