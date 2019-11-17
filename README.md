@@ -21,7 +21,7 @@ First of all, you will need the [Arduino IDE](https://www.arduino.cc/) and a few
 * [TimerOne (on the Arduino Mega)](https://github.com/PaulStoffregen/TimerOne)
 * [DueTimer (on the Arduino Due)](https://github.com/ivanseidel/DueTimer)
 * [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/)
-* [FuGPS (currently, even if no GPS module is installed)](https://github.com/fu-hsi/FuGPS)
+* [FuGPS ~should work without if no GPS module is installed~](https://github.com/fu-hsi/FuGPS)
 * [TimeLib](https://github.com/PaulStoffregen/Time)
 
 Clone or download this repository and open the dobson-star-tracker.ino file in the Arduino IDE. Then you will need to set up a few constants in the config.h file. Have a look at the DEBUG_* constants in config to get some output in the console. Then just have to build and upload the sketch. If the sketch builds and uploads, you can connect the telescope to Stellarium, use the display unit (if you have one) to control the telescope or simply use the Serial Monitor.
