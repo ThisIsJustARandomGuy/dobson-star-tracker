@@ -24,7 +24,7 @@ First of all, you will need the [Arduino IDE](https://www.arduino.cc/) and a few
 * [FuGPS ~should work without if no GPS module is installed~](https://github.com/fu-hsi/FuGPS)
 * [TimeLib](https://github.com/PaulStoffregen/Time)
 
-Clone or download this repository and open the dobson-star-tracker.ino file in the Arduino IDE. Then you will need to set up a few constants in the config.h file. Have a look at the DEBUG_* constants in config to get some output in the console. Then just have to build and upload the sketch. If the sketch builds and uploads, you can connect the telescope to Stellarium, use the display unit (if you have one) to control the telescope or simply use the Serial Monitor.
+Clone or download this repository and open the dobson-star-tracker.ino file in the Arduino IDE. The first thing you will need to set up are a few constants in the config.h file. When you initially build and run the sketch without setting at least the `AZ_STEPS_PER_REV`and `ALT_STEPS_PER_REV` constants, the scope will not move since both of the values are set to 0. This is done to prevent the motors from moving unexpectedly and maybe damaging your telescope. Check the output of the Serial Monitor for more information; enable `DEBUG` and `DEBUG_SERIAL` for useful output. If the sketch builds and uploads, you can connect the telescope to Stellarium, use the display unit (if you have one) to control the telescope or simply use the Serial Monitor. For more information on how to do these things, check below.
 
 ## Connection to Stellarium
 
@@ -34,7 +34,7 @@ There are a few requisites for establishing a connection between the telescope a
 1. Set the `SERIAL_BAUDRATE` to 9600
 2. Disable all of the DEBUG constants, so that the telescope does not send invalid commands to Stellarium. If Stellarium receives an invalid answer, it will wait for a few seconds before interacting with the telescope again. This either means, that it won't receive position updates from the telescope or that it won't send your commands. Setting a new position requires three commands sent by Stellarium. If one of them receives an invalid answer, Stellarium will not send the rest of the commands and your input will basically be ignored.
 3. Close the Serial Monitor or Stellarium will not be able to connect to the telescope
-4. 
+
 ### Settings in Stellarium
 1. Open Stellarium and locate the "Telescope" tab. It should be in the lower control bar to the left of the time controls. If you can't find it, you may need to enable the "Telescope Control" plugin and restart Stellarium. Do so in the Configuration window in the last tab.
 2. Click "Add" and set the following:
