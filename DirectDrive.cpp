@@ -32,6 +32,13 @@ void DirectDrive::calculateMotorTargets() {
 	#endif
 }
 
+void DirectDrive::setAlignment(RaDecPosition alignment) {
+	// Set the steppers to the target position
+	_azimuthStepper.setCurrentPosition((long)(alignment.rightAscension * AZ_STEPS_PER_DEG));
+	_altitudeStepper.setCurrentPosition((long)(alignment.declination * ALT_STEPS_PER_DEG));
+	setTarget(alignment);
+}
+
 
 /*
  * This method gets executed every 10.000 loop iterations right after Dobson::calculateMotorTargets() was called.

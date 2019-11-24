@@ -28,6 +28,8 @@ public:
 	// Sets the actual motor targets, based on the contents of _steppersTarget
 	void move();
 
+	void setAlignment(RaDecPosition alignment);
+
 	// This is set to true at the end of the move() method, if at least one stepper target was changed
 	// It is then reset at the beginning of calculateMotorTargets()
 	bool _didMove = false;
