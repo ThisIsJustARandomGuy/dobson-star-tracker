@@ -4,9 +4,9 @@
 
 // altitude, latitude, longitude
 struct ObserverPosition {
-	float altitude;
-	float latitude;
-	float longitude;
+	double altitude;
+	double latitude;
+	double longitude;
 };
 
 struct RaDecPosition {

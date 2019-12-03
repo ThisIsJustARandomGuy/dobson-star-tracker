@@ -16,6 +16,6 @@
 
 
 void initCommunication(Mount& telescope);
-bool parseCommands(Mount &telescope, Observer& observer, bool homingMode);
+bool parseCommands(Mount &telescope, Observer& observere);
 void receiveCommandChar();
-bool handleSerialCommunication(Mount &telescope, Observer& observer, bool homingMode);
+bool handleSerialCommunication(Mount &telescope, Observer& observer);

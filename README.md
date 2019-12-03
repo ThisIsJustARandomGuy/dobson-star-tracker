@@ -21,10 +21,10 @@ First of all, you will need the [Arduino IDE](https://www.arduino.cc/) and a few
 * [TimerOne (on the Arduino Mega)](https://github.com/PaulStoffregen/TimerOne)
 * [DueTimer (on the Arduino Due)](https://github.com/ivanseidel/DueTimer)
 * [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/)
-* [FuGPS ~should work without if no GPS module is installed~](https://github.com/fu-hsi/FuGPS)
+* [FuGPS (should work without, if no GPS module is installed)](https://github.com/fu-hsi/FuGPS)
 * [TimeLib](https://github.com/PaulStoffregen/Time)
 
-Clone or download this repository and open the dobson-star-tracker.ino file in the Arduino IDE. The first thing you will need to set up are a few constants in the config.h file. When you initially build and run the sketch without setting at least the `AZ_STEPS_PER_REV`and `ALT_STEPS_PER_REV` constants, the scope will not move since both of the values are set to 0. This is done to prevent the motors from moving unexpectedly and maybe damaging your telescope. Check the output of the Serial Monitor for more information; enable `DEBUG` and `DEBUG_SERIAL` for useful output. If the sketch builds and uploads, you can connect the telescope to Stellarium, use the display unit (if you have one) to control the telescope or simply use the Serial Monitor. For more information on how to do these things, check below.
+Clone or download this repository and open the dobson-star-tracker.ino file in the Arduino IDE. The first thing you will need to set up are a few constants in the config.h file. Please read through the whole file and set everything according to your needs. When you initially build and upload the sketch without setting at least the `AZ_STEPS_PER_REV`and `ALT_STEPS_PER_REV` constants, the scope will not move since both of the values are set to 0. This is done to prevent the motors from moving unexpectedly and maybe damaging your telescope. Check the output of the Serial Monitor for more information. Initially, `DEBUG`, `DEBUG_SERIAL` and `DEBUG_STOP_ON_CONFIG_INSANITY` are enabled for useful output via the Serial Monitor. Once everything works correctly, you can disable them. For more information on how to connect the scope to Stellarium or how to use the display unit, check below.
 
 ## Connection to Stellarium
 
@@ -72,6 +72,19 @@ There are a few requisites for establishing a connection between the telescope a
 My example uses a version of the well-known [RepRap Discount Full Graphics Smart Controller](https://reprap.org/wiki/RepRapDiscount_Full_Graphic_Smart_Controller). The only connection between the two Arduino boards is via the two cables connected to RX2 and TX2 on the Display Unit. For more information + code for the display unit head over to [ThisIsJustARandomGuy/telescope-display-unit/](https://github.com/ThisIsJustARandomGuy/telescope-display-unit/).
 
 ![Wiring without the display unit](docs/img/Wiring_With_Display.png)
+
+
+# Aligning using the display unit
+
+If you have a display unit, you can use it to easily align the telescope. This works with/without Stellarium. To align the telescope when using a display unit, do the following:
+
+1. Start the display unit and scope
+2. Navigate to "Set Alignment" -> "Stars"
+3. Look through the list and select a star that's visible in the sky
+4. Once you click the star in the list, the motors of the telescope will turn off
+5. Align the telescope to the star you have selected
+6. Click again and confirm the alignment
+7. The motors will turn on again and the telescope is now aligned.
 
 ## Serial Commands
 

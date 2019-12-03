@@ -4,11 +4,11 @@
  * Board type
  * Uncomment only one of these, depending on the board you are running the firmware on
  */
-#define BOARD_ARDUINO_MEGA
-//#define BOARD_ARDUINO_DUE
+//#define BOARD_ARDUINO_MEGA
+#define BOARD_ARDUINO_DUE
 
 // Baudrate to use when communicating over serial connection
-#define SERIAL_BAUDRATE 9600
+#define SERIAL_BAUDRATE 56000
 
 /*
  * Mount type
@@ -42,8 +42,8 @@
 #define AZ_ENABLE_PIN       38     // RAMPS 1.4 X stepper
 #define AZ_STEP_PIN         54     // RAMPS 1.4
 #define AZ_DIR_PIN          55     // RAMPS 1.4
-#define AZ_STEPS_PER_REV   0.//119467.  // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope (my setup: 3200 : 1 and 560 : 15)
-#define AZ_MAX_ACCEL       300     // Maximum acceleration for the azimuth stepper
+#define AZ_STEPS_PER_REV     0.    // My value: 119467.0  // How many steps the stepper motor needs to complete for one a horizontal 360degree revolution of the telescope (my setup: 3200 : 1 and 560 : 15)
+#define AZ_MAX_ACCEL        300    // Maximum acceleration for the azimuth stepper
 #define AZ_MAX_SPEED       4000    // Maximum speed for the azimuth stepper
 
 /*
@@ -52,12 +52,12 @@
  * Dobson: Altitude (vertical) axis
  * Equatorial: Not implemented; Declination axis
  */
-#define ALT_ENABLE_PIN       56    // RAMPS 1.4 Y stepper
-#define ALT_STEP_PIN         60    // RAMPS 1.4
-#define ALT_DIR_PIN          61    // RAMPS 1.4
-#define ALT_STEPS_PER_REV    0.//73920. // for 90degrees //147840 for a full rotation // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope (my setup: 5.18:1 and 3200 : 1 and 105 : 12)
-#define ALT_MAX_ACCEL        400   // Maximum acceleration for the altitude stepper
-#define ALT_MAX_SPEED        10000 // Maximum speed for the altitude stepper
+#define ALT_ENABLE_PIN       56     // RAMPS 1.4 Y stepper
+#define ALT_STEP_PIN         60     // RAMPS 1.4
+#define ALT_DIR_PIN          61     // RAMPS 1.4
+#define ALT_STEPS_PER_REV     0.    // How many steps the stepper motor needs to complete for a vertical 360degree revolution of the telescope (my setup: 5.18:1 and 3200 : 1 and 105 : 12 = 147840.0)
+#define ALT_MAX_ACCEL         400   // Maximum acceleration for the altitude stepper
+#define ALT_MAX_SPEED        10000  // Maximum speed for the altitude stepper
 
 #define AZ_STEPS_PER_DEG   (AZ_STEPS_PER_REV / 360.0)
 #define ALT_STEPS_PER_DEG  (ALT_STEPS_PER_REV / 360.0)
@@ -99,6 +99,7 @@
 
 // Uncomment the following line to enable sending debug statements via the serial port
 #define DEBUG_SERIAL
+//#define REMOVE_SPLASH // Removes the large "dobson star tracker" splash ascii text
 
 // When initializing, a sanity check is performed on the constants set in config.h
 // If the sanity check fails, the telescope will output a warning.
@@ -110,12 +111,12 @@
 // Uncomment to enable debug statements about how long various tasks take to execute
 //#define DEBUG_TIMING
 // Uncomment to enable debug statements regarding stepper movement
-//#define DEBUG_SERIAL_STEPPER_MOVEMENT
+#define DEBUG_SERIAL_STEPPER_MOVEMENT
 // Uncomment to enable verbose debug statements regarding stepper movement (overrides DEBUG_SERIAL_STEPPER_MOVEMENT)
 //#define DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE
 
 // Uncomment to enable debug statements regarding position calculations
-//#define DEBUG_SERIAL_POSITION_CALC
+#define DEBUG_SERIAL_POSITION_CALC
 
 // Uncomment the following line to enable debug messages of the GPS module
 //#define DEBUG_GPS
@@ -140,10 +141,10 @@
 #define LNG 12.0      // Observer longitude in degrees
 
 // The initial date and time that is used when GPS_FIXED_POS is enabled
-#define INITIAL_YEAR 2019
-#define INITIAL_MONTH 11
-#define INITIAL_DAY 10
-#define INITIAL_HOUR 0
+#define INITIAL_YEAR 1994
+#define INITIAL_MONTH 6
+#define INITIAL_DAY 16
+#define INITIAL_HOUR 18
 #define INITIAL_MINUTE 0
 #define INITIAL_SECOND 0
 
@@ -179,7 +180,7 @@
  * -------------------
  */
 // Update the motor positions (e.g. call Mount::calculateMotorTargets()) every X ms
-#define UPDATE_MOTOR_POS_MS 500
+#define UPDATE_MOTOR_POS_MS 100
 // The stepper interrupts get called every STEPPER_INTERRUPT_FREQ microseconds.
 // 1.000.000 means the interrupt gets called every second. 1.000 means every ms
 // The values below are reasonable for the default motor speeds and the respective boards

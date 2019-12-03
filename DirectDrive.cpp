@@ -15,7 +15,7 @@ DirectDrive::DirectDrive(AccelStepper& azimuthStepper, AccelStepper& altitudeSte
 void DirectDrive::initialize() {
 	// This mount type does not actually track, but it is still
 	// required by some other parts of the firmware to have tracking mode enabled
-	setMode(Mode::TRACKING);
+	setMode(Mode::ALIGNING);
 
 	// The initial setting is 0 degrees for both axes
 	setTarget({ 0, 0 });

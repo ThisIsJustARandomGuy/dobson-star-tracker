@@ -134,7 +134,7 @@ void setupSteppers() {
  * TODO Maybe the conditions need to change (esp. the opmode one)
  */
 void setSteppersOnOffState() {
-	const bool isInitialized = scope.getMode() != Mode::INITIALIZING;
+	const bool isTracking = scope.getMode() == Mode::TRACKING;
 
 #ifdef STEPPERS_ON_PIN
 	// If the STEPPERS_ON switch is installed, check its state
@@ -144,7 +144,7 @@ void setSteppersOnOffState() {
 #define steppersSwitchOn true
 #endif
 
-	if (steppersSwitchOn && isInitialized) {
+	if (steppersSwitchOn && isTracking) {
 		// Motors on
 		motorsEnabled = true;
 #ifdef AZ_ENABLE
@@ -166,30 +166,32 @@ void setSteppersOnOffState() {
 	}
 }
 
-void greet() {
-	DEBUG_PRINTLN("                      __          __  _                          ");
-	DEBUG_PRINTLN("                      \\ \\        / / | |                         ");
-	DEBUG_PRINTLN("                       \\ \\  /\\  / /__| | ___ ___  _ __ ___   ___ ");
-	DEBUG_PRINTLN("                        \\ \\/  \\/ / _ \\ |/ __/ _ \\| '_ ` _ \\ / _ \\");
-	DEBUG_PRINTLN("                         \\  /\\  /  __/ | (_| (_) | | | | | |  __/");
-	DEBUG_PRINTLN("                          \\/  \\/ \\___|_|\\___\\___/|_| |_| |_|\\___|");
-	DEBUG_PRINTLN("                                                                 ");
+#ifndef REMOVE_SPLASH
+	void greet() {
+		DEBUG_PRINTLN("                      __          __  _                          ");
+		DEBUG_PRINTLN("                      \\ \\        / / | |                         ");
+		DEBUG_PRINTLN("                       \\ \\  /\\  / /__| | ___ ___  _ __ ___   ___ ");
+		DEBUG_PRINTLN("                        \\ \\/  \\/ / _ \\ |/ __/ _ \\| '_ ` _ \\ / _ \\");
+		DEBUG_PRINTLN("                         \\  /\\  /  __/ | (_| (_) | | | | | |  __/");
+		DEBUG_PRINTLN("                          \\/  \\/ \\___|_|\\___\\___/|_| |_| |_|\\___|");
+		DEBUG_PRINTLN("                                                                 ");
 
-	DEBUG_PRINTLN(" _____        _                          _____ _                _______             _             ");
-	DEBUG_PRINTLN("|  __ \\      | |                        / ____| |              |__   __|           | |            ");
-	DEBUG_PRINTLN("| |  | | ___ | |__  ___  ___  _ __     | (___ | |_ __ _ _ __      | |_ __ __ _  ___| | _____ _ __ ");
-	DEBUG_PRINTLN("| |  | |/ _ \\| '_ \\/ __|/ _ \\| '_ \\     \\___ \\| __/ _` | '__|     | | '__/ _` |/ __| |/ / _ \\ '__|");
-	DEBUG_PRINTLN("| |__| | (_) | |_) \\__ \\ (_) | | | |    ____) | || (_| | |        | | | | (_| | (__|   <  __/ |   ");
-	DEBUG_PRINTLN("|_____/ \\___/|_.__/|___/\\___/|_| |_|   |_____/ \\__\\__,_|_|        |_|_|  \\__,_|\\___|_|\\_\\___|_|   ");
-	DEBUG_PRINTLN("                                                                                               ");
+		DEBUG_PRINTLN(" _____        _                          _____ _                _______             _             ");
+		DEBUG_PRINTLN("|  __ \\      | |                        / ____| |              |__   __|           | |            ");
+		DEBUG_PRINTLN("| |  | | ___ | |__  ___  ___  _ __     | (___ | |_ __ _ _ __      | |_ __ __ _  ___| | _____ _ __ ");
+		DEBUG_PRINTLN("| |  | |/ _ \\| '_ \\/ __|/ _ \\| '_ \\     \\___ \\| __/ _` | '__|     | | '__/ _` |/ __| |/ / _ \\ '__|");
+		DEBUG_PRINTLN("| |__| | (_) | |_) \\__ \\ (_) | | | |    ____) | || (_| | |        | | | | (_| | (__|   <  __/ |   ");
+		DEBUG_PRINTLN("|_____/ \\___/|_.__/|___/\\___/|_| |_|   |_____/ \\__\\__,_|_|        |_|_|  \\__,_|\\___|_|\\_\\___|_|   ");
+		DEBUG_PRINTLN("                                                                                               ");
 
-	DEBUG_PRINTLN("Welcome to the dobson-star-tracker serial console.");
-	DEBUG_PRINTLN("Before continuing, please set up the config.h file.");
-	DEBUG_PRINTLN("Type :HLP# and press Enter to see a list of available commands");
-	DEBUG_PRINTLN();
-	DEBUG_PRINTLN();
-	DEBUG_PRINTLN();
-}
+		DEBUG_PRINTLN("Welcome to the dobson-star-tracker serial console.");
+		DEBUG_PRINTLN("Before continuing, please set up the config.h file.");
+		DEBUG_PRINTLN("Type :HLP# and press Enter to see a list of available commands");
+		DEBUG_PRINTLN();
+		DEBUG_PRINTLN();
+		DEBUG_PRINTLN();
+	}
+#endif
 
 
 /**
@@ -318,10 +320,12 @@ void config_sanity_check() {
  * Finally, telescope.initialize() is called. This sets an initial target (depending on the MOUNT_TYPE) and the initial scope operating mode
  */
 void setup() {
+	Serial.begin(SERIAL_BAUDRATE);
 	#if defined DEBUG && defined DEBUG_SERIAL
-		Serial.begin(SERIAL_BAUDRATE);
 		delay(500);
-		greet();
+		#ifndef REMOVE_SPLASH
+			greet();
+		#endif
 	#endif
 
 	DEBUG_PRINTLN("> Performing config sanity check");
@@ -385,6 +389,7 @@ void setup() {
 	// Home now switch
 	#ifdef HOME_NOW_PIN
 		pinMode(HOME_NOW_PIN, INPUT);
+
 		DEBUG_PRINLN("done");
 	#else
 		DEBUG_PRINTLN("not connected");
@@ -411,6 +416,7 @@ void setup() {
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN();
+
 }
 
 
@@ -429,16 +435,16 @@ void setup() {
 void loop() {
 	#ifdef HOME_NOW_PIN
 		// If the HOME button is installed and pressed/switched on start homing mode
-		const bool currentlyHoming = digitalRead(HOME_NOW_PIN) == HIGH;
+		const bool currentlyAligning = digitalRead(HOME_NOW_PIN) == HIGH;
 
-		if (currentlyHoming) {
+		if (currentlyAligning) {
 			// The telescope stands still and waits for the next target selection (which it then assumes it is pointing at)
-			// Setting homed to false also sets the telescope to operating mode Mode::HOMING
+			// Setting homed to false also sets the telescope to operating mode Mode::ALIGNING
 			scope.setHomed(false);
 		}
 	#else
 		// If no HOME button exists, it never gets pressed, so we define it as false
-		#define currentlyHoming false
+		#define currentlyAligning false
 	#endif
 
 	// Get the current position from our GPS module. If no GPS is installed
@@ -446,21 +452,18 @@ void loop() {
 	// For more details look at the implementations of the Observer class
 	observer.updatePosition();
 
-	// Homing needs to be performed in HOMING mode
-	bool requiresHoming = scope.getMode() == Mode::HOMING;
-
 	// Handle serial serial communication. Returns true if homing was just performed
-	bool justHomed = handleSerialCommunication(scope, observer, requiresHoming);
+	bool justAligned = handleSerialCommunication(scope, observer);
 
 	#ifdef SERIAL_DISPLAY_ENABLED
-		handleDisplayCommunication(scope, observer, requiresHoming);
+		handleDisplayCommunication(scope, observer);
 	#endif
 
 	// If DEBUG_HOME_IMMEDIATELY is defined, homing is performed on first loop iteration.
 	// Otherwise a serial command or HOME_NOW Button are required
-	if (justHomed || currentlyHoming
+	if (justAligned || currentlyAligning
 		|| (homeImmediately && loopIteration == 0)) {
-		justHomed = true;
+		justAligned = true;
 
 		// Sets the telescope to operating mode Mode::TRACKING
 		scope.setHomed(true);

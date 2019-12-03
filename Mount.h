@@ -20,19 +20,19 @@ enum Mode {
 	// This is only on when initializing critical hardware such as the stepper drivers.
 	// When this mode is active, you can not rely on any value reported by the telescope (stepper pos, GPS pos, desired pos etc.)
 	//
-	// Motors are on: YES
+	// Motors are on: NO
 	// Tracking active: NO
 	// Desired/Reported stepper position updates: YES
 	INITIALIZING,
 
-	// HOMING
+	// ALIGNING
 	// While this mode is on, the telescope stands still and assumes that it is correctly pointing at the desired position.
 	// Once a target gets selected the telescope assumes that this is where it's pointed at and starts tracking it
 	//
 	// Motors are on: YES
 	// Tracking active: NO
 	// Desired/Reported stepper position updates: YES
-	HOMING,
+	ALIGNING,
 	
 	// TRACKING
 	// While this mode is on, the telescope tracks the desired position
@@ -62,13 +62,15 @@ public:
 
 	virtual void move();
 
+	virtual void setAlignment(RaDecPosition alignment);
+
 	void setHomed(const bool value = true) {
 		_isHomed = value;
 		if (value) {
 			setMode(Mode::TRACKING);
 		}
 		else {
-			setMode(Mode::HOMING);
+			setMode(Mode::ALIGNING);
 		}
 	}
 
@@ -82,7 +84,7 @@ public:
 
 	void setTarget(RaDecPosition target) {
 		DEBUG_PRINTLN();
-		DEBUG_PRINT("Target:     Ra/Dec ");
+		DEBUG_PRINT("Target Ra/Dec:  ");
 		DEBUG_PRINT(target.rightAscension);
 		DEBUG_PRINT("° / ");
 		DEBUG_PRINT(target.declination);

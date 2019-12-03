@@ -64,9 +64,9 @@ void updateEEPROM(float altitude, float latitude, float longitude, int hours,
 // The current local sidereal time at the specified longitude and the current time
 // Simply said, it's the right ascension of the point in the sky directly above the observer
 // More information and an explanation of the algorithm can be found at: http://www.astro.sunysb.edu/fwalter/AST443/times.html
-double get_local_sidereal_time(const double degrees_longitude) {
-	const unsigned long day_seconds = hour() * 3600UL + minute() * 60 + second();
-	const unsigned long timestamp = now();
+double get_local_sidereal_time2(const double degrees_longitude) {
+	const double day_seconds = hour() * 3600. + minute() * 60. + second();
+	const double timestamp = now();
 
 	const double julian_day = timestamp / 86400.0;
 	const double T = (julian_day - 10957.5) / 36525.0;
@@ -76,4 +76,28 @@ double get_local_sidereal_time(const double degrees_longitude) {
 	const double GST = fmod((((G0 + a) / 3600.0) + 9600), 24);
 
 	return GST - (degrees_longitude / 15.);
+}
+
+
+// Uses the algorithm from http://www2.arnes.si/~gljsentvid10/sidereal.htm
+double get_local_sidereal_time(const double degrees_longitude) {
+	const double d1 = 367. * year();
+	const double d2 = 275. * month() / 9.;
+	const double d3 = (month() + 9.) / 12.;
+	const double d4 = 7. * (year() + (long)(d3)) / 4.;
+
+	double dwhole = d1 - (long)(d4) + (long)(d2) + day() - 730531.5;
+	double dfrac = (hour() + minute() / 60. + second() / 3600.) / 24.;
+
+	double d = dwhole + dfrac;
+
+	double GMST = 280.46061837 + 360.98564736629 * d;
+	double LMST = GMST + degrees_longitude;
+
+	LMST = fmod(LMST, 360.);
+	if (LMST < 0.) {
+		LMST += 360.;
+	}
+
+	return LMST;
 }

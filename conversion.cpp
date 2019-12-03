@@ -32,7 +32,7 @@ RaDecPosition futurePosition = { 0, 0 };
 
 boolean isPositiveDeclination = false;
 
-boolean isHomed = false;
+boolean isAligned = false;
 
 char txAR[10]; // Gets reported to stellarium when it asks for right ascension. Example: "16:41:34#"
 char txDEC[11]; // Same as above with declination. Example: "+36d%c28:%02d#"
@@ -222,7 +222,7 @@ void moveQuit(Mount& scope) {
 }
 
 // Start the requested move
-bool moveStart(bool homingMode, Mount& scope) {
+bool moveStart(Mount& scope) {
 	// Immediately confirm to Stellarium
 	Serial.print("0");
 
@@ -230,10 +230,10 @@ bool moveStart(bool homingMode, Mount& scope) {
 	scope.setTarget(futurePosition);
 
 	// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
-	// If homing mode is true we set isHomed to true
+	// If homing mode is true we set isAligned to true
 	// and return true to indicate to the loop() function that homing is complete.
-	if (homingMode) {
-		isHomed = true;
+	if (scope.getMode() == Mode::ALIGNING) {
+		isAligned = true;
 		return true;
 	}
 
@@ -303,7 +303,7 @@ void setDeclination(Mount &telescope) {
  * It parses the received characters and calls the required functions
  * TODO Break this up into small functions so that the code stays maintainable
  */
-bool parseCommands(Mount &telescope, Observer& observer, bool homingMode) {
+bool parseCommands(Mount &telescope, Observer& observer) {
 	if (newData == true) {
 		if (receivedChars[0] == 'G' && receivedChars[1] == 'R') {
 			// GR: Get Right Ascension
@@ -316,13 +316,13 @@ bool parseCommands(Mount &telescope, Observer& observer, bool homingMode) {
 			moveQuit(telescope);
 		} else if (receivedChars[0] == 'M' && receivedChars[1] == 'S') {
 			// MS: Move Start
-			// The function returning true means that isHomed was set to true.
-			if (moveStart(homingMode, telescope)) {
+			// The function returning true means that isAligned was set to true.
+			if (moveStart(telescope)) {
 				// Ignores the next movement update and treats it as a home command instead
 				telescope.ignoreUpdates();
 
 				newData = false;
-				// Homing was just performed
+				// Aligning was just performed
 				return true;
 			}
 			else {
@@ -399,19 +399,29 @@ bool parseCommands(Mount &telescope, Observer& observer, bool homingMode) {
 					if (targetIndex > maxDebugPos) {
 						Serial.println("Invalid index");
 					} else {
-						Serial.println("");
-						Serial.print("Targeting ");
+						Serial.println();
+						Serial.println("-----------------------------------------");
+						Serial.println("Moving telescope to new target");
+
+						Serial.print("Name\t");
 						Serial.println(positionNames[targetIndex]);
-						Serial.println("Moving from ALT / DEC");
-						Serial.println(ra_deg);
-						Serial.println(dec_deg);
-						Serial.println("Moving to ALT / DEC");
-						Serial.println(debugPositions[targetIndex][0]);
-						Serial.println(debugPositions[targetIndex][1]);
+						Serial.print("Ra\t");
+						Serial.print(debugPositions[targetIndex][0]);
+						Serial.println("°");
+						Serial.print("Dec\t");
+						Serial.print(debugPositions[targetIndex][1]);
+						Serial.println("°");
+
+
+						Serial.println("-----------------------------------------");
+
 						ra_deg = debugPositions[targetIndex][0];
 						dec_deg = debugPositions[targetIndex][1];
 						RaDecPosition newPos = { debugPositions[targetIndex][0], debugPositions[targetIndex][1] };
+						Serial.print("Scope msg: ");
 						telescope.setTarget(newPos);
+						Serial.println();
+						Serial.println();
 
 						// If there is a target select button we need to store the selected position in 
 						#ifdef TARGET_SELECT_PIN
@@ -421,7 +431,7 @@ bool parseCommands(Mount &telescope, Observer& observer, bool homingMode) {
 				}
 			} else if (receivedChars[3] == 'H') {
 				// Home the scope
-				telescope.setHomed();
+				telescope.setHomed(true);
 			} else if (receivedChars[3] == 'D' && receivedChars[4] == 'M') {
 				// Disable Motors and Pause for X seconds
 				digitalWrite(ALT_ENABLE_PIN, HIGH);
@@ -456,13 +466,13 @@ bool parseCommands(Mount &telescope, Observer& observer, bool homingMode) {
 	return false;
 }
 
-bool handleSerialCommunication(Mount &telescope, Observer &observer, bool homingMode) {
+bool handleSerialCommunication(Mount &telescope, Observer &observer) {
 	// Receives the next command character, if available
 	receiveCommandChar();
 
 	// Once a complete command has been received, this parses and runs the command
-	// Returns true, if the received command triggered a change from Mode::HOMING to Mode::TRACKING
-	bool switchedToTracking = parseCommands(telescope, observer, homingMode);
+	// Returns true, if the received command triggered a change from Mode::ALIGNING to Mode::TRACKING
+	bool switchedToTracking = parseCommands(telescope, observer);
 
 	// If we have a target select button it gets handled here
 	#ifdef TARGET_SELECT_PIN

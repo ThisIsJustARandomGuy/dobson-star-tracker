@@ -25,6 +25,10 @@ public:
 	// This does not yet update the stepper motor targets, but stores them in the protected member variable _steppersTarget
 	// It also calls the azAltToRaDec() method with the current stepper position and stores the result
 	void calculateMotorTargets();
+
+	AzAlt<double> raDecToAltAz(RaDecPosition target);
+
+	void setAlignment(RaDecPosition alignment);
 	
 	// Calculates the current position in Ra/Dec, which is reported back to Stellarium or other connected tools
 	RaDecPosition azAltToRaDec(AzAlt<double> position);

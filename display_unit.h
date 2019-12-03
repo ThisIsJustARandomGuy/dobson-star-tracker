@@ -6,11 +6,11 @@
 
 void display_statusUpdate(Mount& telescope);
 void initDisplayCommunication(Mount& telescope);
-void handleDisplayCommunication(Mount& telescope, Observer& observer, bool homingMode);
+void handleDisplayCommunication(Mount& telescope, Observer& observer);
 
 // Status commands
 #define SERIAL_DISPLAY_CMD_STATUS_INITIALIZING "s:1"
-#define SERIAL_DISPLAY_CMD_STATUS_ONLINE "s:2"
+#define SERIAL_DISPLAY_CMD_STATUS_ALIGNING "s:2"
 #define SERIAL_DISPLAY_CMD_STATUS_TRACKING "s:3"
 
 // These lines define the mount type command, depending on which MOUNT_TYPE is selected in config.h

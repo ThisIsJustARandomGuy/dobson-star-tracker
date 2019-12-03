@@ -32,13 +32,46 @@ Dobson::Dobson(AccelStepper &azimuthStepper, AccelStepper &altitudeStepper, Obse
 		_azimuthStepper(azimuthStepper), _altitudeStepper(altitudeStepper), _observer(observer) {
 }
 
+
 void Dobson::initialize() {
-	setMode(Mode::TRACKING);
+	setMode(Mode::ALIGNING);
 	setTarget({
 		250.425, //15. * (22. + (59.8 / 60.)),
 		36.466667//42. + (43. / 60.)
 	});
 	calculateMotorTargets();
+}
+
+
+/*
+ * Converts from Right Ascension and Declination (Horizontal) to Azimuth and Altitude (Equatorial) coordinates
+ */
+AzAlt<double> Dobson::raDecToAltAz(RaDecPosition target) {
+	// Update LST
+	_currentLocalSiderealTime = get_local_sidereal_time(_observer.longitude());
+	double ha = _currentLocalSiderealTime - target.rightAscension; // in degrees
+	if (ha < 0.) {
+		ha += 360.;
+	}
+
+	const double h1 = radians(ha);
+	const double d = radians(target.declination);
+	const double lat = radians(_observer.latitude());
+
+	const double sinA = sin(d) * sin(lat) + cos(d) * cos(lat) * cos(h1);
+	const double alt = degrees(asin(sinA));
+
+	const double y = 0.-cos(d) * cos(lat) * sin(h1);
+	const double x = sin(d) - sin(lat) * sinA;
+
+	const double upperA = atan2(y, x);
+	double upperB = degrees(upperA);
+
+	if (upperB < 0.) {
+		upperB += 360.;
+	}
+
+	return { upperB, alt };
 }
 
 /*
@@ -50,23 +83,11 @@ void Dobson::initialize() {
  * If sin(HourAngle) > 0 then Azimuth = 360 - Azimuth
  */
 void Dobson::calculateMotorTargets() {
-	const float longitude = _observer.longitude();
-	const float latitude = _observer.latitude();
-	_currentLocalSiderealTime = get_local_sidereal_time(longitude);
-
-	const double HA = _currentLocalSiderealTime - _target.rightAscension;
-
-	const double Altitude = degrees(asin( sin(radians(_target.declination)) * sin(radians(latitude)) + cos(radians(_target.declination)) * cos(radians(latitude)) * cos(radians(HA)) ));
-	const double A = degrees(acos((sin(radians(_target.declination)) - sin(radians(latitude)) * sin(radians(Altitude))) / (cos(radians(latitude)) * cos(radians(Altitude)))));
-
-	double Azimuth = sin(radians(HA)) > 0 ? 360. - A : A;
-	clamp360(Azimuth);
-
-	_targetDegrees = { Azimuth, Altitude };
+	_targetDegrees = raDecToAltAz(_target);
 
 	_steppersTarget = {
-		(long)(Azimuth * AZ_STEPS_PER_DEG),
-		(long)(Altitude * ALT_STEPS_PER_DEG)
+		_targetDegrees.azimuth * AZ_STEPS_PER_DEG,
+		_targetDegrees.altitude * ALT_STEPS_PER_DEG
 	};
 
 	if (_steppersTarget.azimuth != _steppersLastTarget.azimuth
@@ -94,6 +115,19 @@ void Dobson::calculateMotorTargets() {
 
 
 /*
+ * 
+ */
+void Dobson::setAlignment(RaDecPosition alignment) {
+	AzAlt<double> alignmentAzAlt = raDecToAltAz(alignment);
+
+	// Set the steppers to the target position
+	_azimuthStepper.setCurrentPosition((long)(alignmentAzAlt.azimuth * AZ_STEPS_PER_DEG));
+	_altitudeStepper.setCurrentPosition((long)(alignmentAzAlt.altitude * ALT_STEPS_PER_DEG));
+	setTarget(alignment);
+}
+
+
+/*
  * This method gets executed every 10.000 loop iterations right after Dobson::calculateMotorTargets() was called.
  * It checks whether the telescope is homed. If it is NOT homed, it sets the target as its current motor positions and sets _isHomed to true.
  * The next time the method gets called, _isHomed is true , and the stepper motors are actually moved to their new required position.
@@ -115,9 +149,11 @@ void Dobson::move() {
 		_ignoredMoveLastIteration = true;
 	} else {
 		_ignoredMoveLastIteration = false;
-		// Move the steppers to their target positions
-		_azimuthStepper.moveTo(_steppersTarget.azimuth);
-		_altitudeStepper.moveTo(_steppersTarget.altitude);
+		if (_didMove) {
+			// Move the steppers to their target positions
+			_azimuthStepper.moveTo(_steppersTarget.azimuth);
+			_altitudeStepper.moveTo(_steppersTarget.altitude);
+		}
 	}
 
 	// Has the motor position changed since the last time move() was called? If so,
@@ -137,53 +173,48 @@ void Dobson::move() {
 
 
 /*
- * This method calculates the position in RA/DEC, based on the position given in the parameter "position"
+ * This method converts from Azimuth and Altitude (Equatorial) to Right Ascension and Declination (Horizontal)
  * The values in the "position" parameter are expected to be in degrees
- * Declination = asin( sin(alt) * sin(lat) + cos(alt) * cos(lat) * cos(az) )
- * HourAngle = acos( (sin(alt) - sin(lat) * sin(dec)) / (cos(lat) * cos(dec)) )
- * If sin(az) > 0 then HourAngle = 360 - HourAngle
- * RightAscension = LST - HourAngle
  */
 RaDecPosition Dobson::azAltToRaDec(AzAlt<double> position) {
-	const double latitude = radians(_observer.latitude());
+	const double az = radians(position.azimuth);
+	const double alt = radians(position.altitude);
+	const double lat = radians(_observer.latitude());
 
-	const double sinLAT = sin(latitude);
-	const double cosLAT = cos(latitude);
+	const double sinDec = sin(alt) * sin(lat) + cos(alt) * cos(lat) * cos(az);
+	const double dec = degrees(asin(sinDec));
 
-	
-	const double radAZ = radians(position.azimuth);
-	const double radALT = radians(position.altitude);
+	const double y = -cos(alt) * cos(lat) * sin(az);
+	const double x = sin(alt) - sin(lat) * sinDec;
 
-	const double cosAZ = cos(radAZ);
-	const double sinAZ = sin(radAZ);
+	const double upperHA = atan2(y, x);
+	double ha = degrees(upperHA);
 
-	const double cosALT = cos(radALT);
-	const double sinALT = sin(radALT);
+	if (ha < 0.) {
+		ha += 360.;
+	}
 
-	const double sinDEC = sinALT * sinLAT + cosALT * cosLAT * cosAZ;
-	const double radDEC = asin(sinDEC);
-	const double Declination = degrees(radDEC);
-	
-	const double ha1 = degrees(acos(((sinALT - sinLAT * sinDEC) / (cosLAT * cos(radDEC)))));
-	const double HourAngle = sinAZ > 0 ? 360. - ha1 : ha1;
+	const double h1 = _currentLocalSiderealTime - ha;
+	double ra = h1;
+	if (h1 < 0.) {
+		ra += 360.;
+	}
 
-	double RightAscension = _currentLocalSiderealTime - HourAngle;
-	clamp360(RightAscension);
-	
-	return {
-		RightAscension,
-		Declination
-	};
+	return { ra, dec };
 }
-
 
 /*
  * This jsut prints various debug statements so that they do not have to happen in calculateMotorTargets(), move(), and azAltToRaDec()
 */
 void Dobson::debugMove(long diffAz, long diffAlt) {
-
+	#if !defined DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE && (defined DEBUG_SERIAL_STEPPER_MOVEMENT || defined DEBUG_SERIAL_POSITION_CALC)
+	DEBUG_PRINTLN("-------------------------------------------------------------------------------------------------------------------");
+		DEBUG_PRINTLN("\t\tRA\tDEC\t\tAZ\tALT\t\tStp Az\tStp Alt\t\tDate\t\tTime");
+		//DEBUG_PRINTLN("Desired:       Ra/Dec 250.43°  |  36.47°   Az/Alt 86.56°  |  51.03°   Steps Az/Alt 28724°  |  20955°   Time: 16.06.1994 at 18:01:20hrs  |  LST 3.48");
+	#endif
 	// Debug statements by calculateMotorTargets()
 	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE
+		DEBUG_PRINTLN("-------------------------------------------------------------------------------------------------------------------");
 		DEBUG_PRINT_V(
 			_gps.hasFix() ?
 			"GPS: " + String(_gps.Satellites, 6) + "S/" + String(_gps.Quality) + "Q "
@@ -201,7 +232,7 @@ void Dobson::debugMove(long diffAz, long diffAlt) {
 		DEBUG_PRINT(_target.declination);
 		DEBUG_PRINT(" to ALTAZ is: ");
 		DEBUG_PRINT(_targetDegrees.altitude);
-		DEBUG_PRINT("° / ");
+		DEBUG_PRINT("°  |  ");
 		DEBUG_PRINT(_targetDegrees.azimuth);
 		DEBUG_PRINT("°; The time is: ");
 		DEBUG_PRINT(day());
@@ -228,35 +259,54 @@ void Dobson::debugMove(long diffAz, long diffAlt) {
 		DEBUG_PRINT("/dec ");
 		DEBUG_PRINT(_altitudeStepper.currentPosition());
 	#elif defined DEBUG_SERIAL_STEPPER_MOVEMENT
-		DEBUG_PRINTLN("-------------------------------------------------------------------------------------------------------------------");
-		DEBUG_PRINT("Desired:     ");
-
-		DEBUG_PRINT("   Ra/Dec ");
+		// Desired position in Ra/Dec
+		DEBUG_PRINT("Desired:\t");
 		DEBUG_PRINT(_target.rightAscension);
-		DEBUG_PRINT("° / ");
+		DEBUG_PRINT("°\t");
 		DEBUG_PRINT(_target.declination);
-		DEBUG_PRINT("°");
-
-		DEBUG_PRINT("   Az/Alt ");
+		DEBUG_PRINT("°\t\t");
+		
+		// Target Az/Alt
 		DEBUG_PRINT(_targetDegrees.azimuth);
-		DEBUG_PRINT("° / ");
+		DEBUG_PRINT("°\t");
 		DEBUG_PRINT(_targetDegrees.altitude);
-		DEBUG_PRINT("°");
+		DEBUG_PRINT("°\t\t");
 
-		DEBUG_PRINT("   Steps Az/Alt ");
-		DEBUG_PRINT((long)_steppersTarget.azimuth);
-		DEBUG_PRINT("° / ");
-		DEBUG_PRINT((long)_steppersTarget.altitude);
-		DEBUG_PRINT("°");
+		// Stepper target Az/Alt
+		DEBUG_PRINT(_steppersTarget.azimuth);
+		DEBUG_PRINT("°\t");
+		DEBUG_PRINT(_steppersTarget.altitude);
+		DEBUG_PRINT("°\t\t");
 
-		DEBUG_PRINT("   Time: ");
-		DEBUG_PRINT(day()); DEBUG_PRINT("."); DEBUG_PRINT(month()); DEBUG_PRINT("."); DEBUG_PRINT(year());
-		DEBUG_PRINT(" at ");
-		DEBUG_PRINT(hour()); DEBUG_PRINT(":"); DEBUG_PRINT(minute()); DEBUG_PRINT(":"); DEBUG_PRINT(second());
-		DEBUG_PRINT("hrs");
+		// Date
+		if (day() < 10) {
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINT(day());
+		DEBUG_PRINT(".");
+		if (month() < 10) {
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINT(month());
+		DEBUG_PRINT(".");
+		DEBUG_PRINT(year());
+		DEBUG_PRINT("\t");
 
-		DEBUG_PRINT("   LST ");
-		DEBUG_PRINT(_currentLocalSiderealTime);
+		// Time
+		if (hour() < 10) {
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINT(hour());
+		DEBUG_PRINT(":");
+		if (minute() < 10) {
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINT(minute());
+		DEBUG_PRINT(":");
+		if (second() < 10) {
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINT(second());
 
 		#ifndef DEBUG_TIMING
 			DEBUG_PRINTLN("");
@@ -272,20 +322,27 @@ void Dobson::debugMove(long diffAz, long diffAlt) {
 
 
 	// From here on only debug outputs happen in this method
-	#ifdef DEBUG_SERIAL_POSITION_CALC
-		DEBUG_PRINT("Calculated:  ");
+	#ifdef DEBUG_SERIAL_STEPPER_MOVEMENT
+		DEBUG_PRINT("Current:\t");
 
-		DEBUG_PRINT("   Ra/Dec ");
 		DEBUG_PRINT(_currentPosition.rightAscension);
-		DEBUG_PRINT("° / ");
+		DEBUG_PRINT("°\t");
 		DEBUG_PRINT(_currentPosition.declination);
-		DEBUG_PRINT("°");
+		DEBUG_PRINT("°\t\t");
 
-		DEBUG_PRINT("   Az/Alt ");
 		DEBUG_PRINT(_azimuthStepper.currentPosition() / AZ_STEPS_PER_DEG);
-		DEBUG_PRINT("° / ");
+		DEBUG_PRINT("°\t");
 		DEBUG_PRINT(_altitudeStepper.currentPosition() / ALT_STEPS_PER_DEG);
+		DEBUG_PRINT("°\t\t");
+
+		DEBUG_PRINT(_azimuthStepper.currentPosition());
+		DEBUG_PRINT("°\t");
+		DEBUG_PRINT(_altitudeStepper.currentPosition());
 		DEBUG_PRINTLN("°");
+	#endif
+
+	#if defined DEBUG_SERIAL_STEPPER_MOVEMENT_VERBOSE || defined DEBUG_SERIAL_STEPPER_MOVEMENT || defined DEBUG_SERIAL_STEPPER_MOVEMENT
+		DEBUG_PRINTLN("");
 	#endif
 	// End statements by azAltToRaDec()
 }
