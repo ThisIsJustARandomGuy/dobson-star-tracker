@@ -48,15 +48,13 @@ There are a few requisites for establishing a connection between the telescope a
     * **Use field of view indicators:** Does not matter for controlling the telescope. Use your preference.
 3. Confirm the settings with "OK"
 4. Use "Start" to connect to the telescope
-5. Wait a few seconds for it to show up on the screen
-6. **Imporant:** I haven't figured out how I want aligning the telescope to work. For now, this will do, but please add suggestions to the issue I have opened for this.
-    1. Turn off the power supply to the steppers
-    2. Manually point the telescope at a star
-    3. Select that star in Stellarium
-    4. Click "current object" in the telescope section
-    5. Click "slew" and wait for the telescope on screen to point at the correct star
-    6. Reconnect the stepper driver power supply
-    7. The telescope will know where it is actually pointing at
+5. Wait a few seconds for it to show up on the screen and for it to settle down
+6. Align the telescope
+   1. Choose your alignment star and select it in Stellarium
+   2. Click "current object" in the telescope section
+   3. Align the telescope manually
+   3. Confirm alignment by clicking "slew" and wait for the telescope on screen to point at the correct star
+   4. The telescope is now aligned to that particular star
 7. Select a star
 8. Click "current object" in the telescope section
 9. Click "slew" and watch the telescope move
