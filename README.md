@@ -49,13 +49,13 @@ There are a few requisites for establishing a connection between the telescope a
 3. Confirm the settings with "OK"
 4. Use "Start" to connect to the telescope
 5. Wait a few seconds for it to show up on the screen and for it to settle down
-6. Align the telescope
+6. The motors will not move until you align the telescope. To do so, follow this procedure:
    1. Choose your alignment star and select it in Stellarium
    2. Click "current object" in the telescope section
-   3. Align the telescope manually
+   3. Manually point the telescope at the selected star
    3. Confirm alignment by clicking "slew" and wait for the telescope on screen to point at the correct star
-   4. The telescope is now aligned to that particular star
-7. Select a star
+   4. The telescope is now aligned to that particular star and the stepper motors will be enabled
+7. Now you can select a different star in Stellarium
 8. Click "current object" in the telescope section
 9. Click "slew" and watch the telescope move
 

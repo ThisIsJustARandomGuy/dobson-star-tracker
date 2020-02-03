@@ -64,6 +64,7 @@ public:
 
 	virtual void setAlignment(RaDecPosition alignment);
 
+
 	void setHomed(const bool value = true) {
 		_isHomed = value;
 		if (value) {
@@ -101,6 +102,8 @@ public:
 		return _currentPosition;
 	}
 
+	virtual AzAlt<double> getMotorAngles();
+
 protected:
 	// Which mode the telescope is curently in. See above for what the constants do
 	Mode _mode = Mode::INITIALIZING;
@@ -116,5 +119,9 @@ protected:
 	RaDecPosition _lastTarget;
 
 	RaDecPosition _currentPosition;
+
+	// Current stepper target position for the steppers (in steps). It is written to at the end of calculateMotorTargets()
+	AzAlt<long> _steppersTarget;
+
 };
 

@@ -30,6 +30,13 @@ public:
 
 	void setAlignment(RaDecPosition alignment);
 
+	AzAlt<double> getMotorAngles() {
+		return {
+			_azimuthStepper.currentPosition() / AZ_STEPS_PER_DEG,
+			_altitudeStepper.currentPosition() / ALT_STEPS_PER_DEG,
+		};
+	}
+
 	// This is set to true at the end of the move() method, if at least one stepper target was changed
 	// It is then reset at the beginning of calculateMotorTargets()
 	bool _didMove = false;
@@ -48,9 +55,6 @@ protected:
 
 	// Reference to the Observer
 	Observer& _observer;
-
-	// Current stepper target position for the steppers (in steps). It is written to at the end of calculateMotorTargets()
-	AzAlt<long> _steppersTarget;
 
 	// Target position for the steppers before the last move. It is written to at the end of move()
 	AzAlt<long> _steppersLastTarget;

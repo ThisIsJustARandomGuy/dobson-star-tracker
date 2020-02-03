@@ -29,5 +29,10 @@ void handleDisplayCommunication(Mount& telescope, Observer& observer);
 
 
 // Macros
+#ifndef DEBUG_SERIAL_DISPLAY_COMMANDS
 #define SERIAL_DISPLAY_PRINT(x) SERIAL_DISPLAY_PORT.print(x); DEBUG_PRINT(x)
 #define SERIAL_DISPLAY_PRINTLN(x) SERIAL_DISPLAY_PORT.println(x); DEBUG_PRINTLN(x)
+#else
+#define SERIAL_DISPLAY_PRINT(x) SERIAL_DISPLAY_PORT.print(x); Serial.print(x)
+#define SERIAL_DISPLAY_PRINTLN(x) SERIAL_DISPLAY_PORT.println(x); Serial.println(x)
+#endif

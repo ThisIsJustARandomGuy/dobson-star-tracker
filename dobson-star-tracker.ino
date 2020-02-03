@@ -327,7 +327,7 @@ void setup() {
 			greet();
 		#endif
 	#endif
-
+			delay(500);
 	DEBUG_PRINTLN("> Performing config sanity check");
 	config_sanity_check();
 	

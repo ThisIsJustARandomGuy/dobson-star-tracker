@@ -226,15 +226,19 @@ bool moveStart(Mount& scope) {
 	// Immediately confirm to Stellarium
 	Serial.print("0");
 
-	DEBUG_PRINTLN("Starting Move");
-	scope.setTarget(futurePosition);
-
 	// TODO Homing code needs to be better. It has to disable the steppers and there must be some way to enable/disable it
 	// If homing mode is true we set isAligned to true
 	// and return true to indicate to the loop() function that homing is complete.
 	if (scope.getMode() == Mode::ALIGNING) {
+
+		DEBUG_PRINTLN("Setting alignment");
+		scope.setAlignment(futurePosition);
 		isAligned = true;
 		return true;
+	}
+	else {
+		DEBUG_PRINTLN("Starting Move");
+		scope.setTarget(futurePosition);
 	}
 
 	return false;
@@ -319,7 +323,7 @@ bool parseCommands(Mount &telescope, Observer& observer) {
 			// The function returning true means that isAligned was set to true.
 			if (moveStart(telescope)) {
 				// Ignores the next movement update and treats it as a home command instead
-				telescope.ignoreUpdates();
+				//telescope.ignoreUpdates();
 
 				newData = false;
 				// Aligning was just performed
@@ -333,10 +337,12 @@ bool parseCommands(Mount &telescope, Observer& observer) {
 			// Set Right Ascension (in hours, minutes and seconds)
 			//telescope.ignoreUpdates();
 			setRightAscension(telescope);
+			display_statusUpdate(telescope);
 		} else if (receivedChars[0] == 'S' && receivedChars[1] == 'd') {
 			// Set target Declination (in degrees, minutes and seconds)
 			//telescope.ignoreUpdates();
 			setDeclination(telescope);
+			display_statusUpdate(telescope);
 		}
 		else if (receivedChars[0] == 'T' && receivedChars[1] == 'R' && receivedChars[2] == 'K') {
 			// Enable / Disable tracking (= home off / on)
@@ -382,6 +388,7 @@ bool parseCommands(Mount &telescope, Observer& observer) {
 								add > 0 ?
 										"Add 1 deg ascension" :
 										"Sub 1 deg ascension");
+						display_statusUpdate(telescope);
 					} else if (receivedChars[5] == 'D') {
 						// DBGMD[+/-]XX Move Declination to +/-XX
 						dec_deg += add;
@@ -392,6 +399,7 @@ bool parseCommands(Mount &telescope, Observer& observer) {
 								add > 0 ?
 										"Add 1 deg declination" :
 										"Sub 1 deg declination");
+						display_statusUpdate(telescope);
 					}
 				} else {
 					// Debug move to position stored in debugPositions[targetIndex]
@@ -422,6 +430,7 @@ bool parseCommands(Mount &telescope, Observer& observer) {
 						telescope.setTarget(newPos);
 						Serial.println();
 						Serial.println();
+						display_statusUpdate(telescope);
 
 						// If there is a target select button we need to store the selected position in 
 						#ifdef TARGET_SELECT_PIN

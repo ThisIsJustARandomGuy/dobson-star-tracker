@@ -28,6 +28,13 @@ public:
 
 	AzAlt<double> raDecToAltAz(RaDecPosition target);
 
+	AzAlt<double> getMotorAngles() {
+		return {
+			_azimuthStepper.currentPosition() / AZ_STEPS_PER_DEG,
+			_altitudeStepper.currentPosition() / ALT_STEPS_PER_DEG,
+		};
+	}
+
 	void setAlignment(RaDecPosition alignment);
 	
 	// Calculates the current position in Ra/Dec, which is reported back to Stellarium or other connected tools
